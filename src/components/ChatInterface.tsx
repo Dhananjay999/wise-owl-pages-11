@@ -18,29 +18,18 @@ import {
   Minimize
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Message {
-  id: string;
-  type: 'user' | 'bot';
-  content: string;
-  timestamp: Date;
-  attachments?: File[];
-  metadata?: {
-    sources: Array<{
-      name: string; // PDF name or web URL
-      pageNumber?: number;
-      title?: string;
-      type: 'pdf' | 'web';
-    }>;
-  };
-}
-
-interface ChatMode {
-  id: 'pdf' | 'web';
-  label: string;
-  icon: typeof FileText;
-  description: string;
-}
+import { SEARCH_MODES } from "@/constants";
+import { apiService } from "@/services";
+import { 
+  Message, 
+  ChatMode
+} from "@/types";
+import { 
+  createMessageId, 
+  mapAPIMetadataToSourceInfo,
+  isValidMessage,
+  isValidFile 
+} from "@/utils";
 
 const ChatInterface = () => {
   // Separate chat histories for each mode
@@ -67,6 +56,7 @@ const ChatInterface = () => {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [webLoading, setWebLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [pdfMetadata, setPdfMetadata] = useState<Record<string, boolean>>({});
   const [webMetadata, setWebMetadata] = useState<Record<string, boolean>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -87,21 +77,23 @@ const ChatInterface = () => {
       id: 'pdf',
       label: 'From PDF',
       icon: FileText,
-      description: 'Ask questions about your uploaded documents'
+      description: 'Ask questions about your uploaded documents',
+      searchMode: 'study_material'
     },
     {
       id: 'web',
       label: 'Web Results',
       icon: Globe,
-      description: 'Search the web for academic information'
+      description: 'Search the web for academic information',
+      searchMode: 'web_search'
     }
   ];
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() && attachedFiles.length === 0) return;
+    if (!isValidMessage(inputValue) && attachedFiles.length === 0) return;
 
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: createMessageId(),
       type: 'user',
       content: inputValue,
       timestamp: new Date(),
@@ -113,50 +105,90 @@ const ChatInterface = () => {
     setAttachedFiles([]);
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const searchMode = chatModes.find(mode => mode.id === selectedMode)?.searchMode || SEARCH_MODES.STUDY_MATERIAL;
+      const data = await apiService.sendChatMessage(inputValue, searchMode);
+      
       const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: createMessageId(),
         type: 'bot',
-        content: selectedMode === 'pdf' 
-          ? `I've analyzed your ${attachedFiles.length > 0 ? 'uploaded documents' : 'previous PDFs'} and found relevant information about "${inputValue}". Here's what I found...`
-          : `I've searched the web for academic information about "${inputValue}". Here are the most relevant findings...`,
+        content: data.answer,
         timestamp: new Date(),
-        metadata: selectedMode === 'pdf' 
-          ? {
-              sources: [
-                {
-                  name: attachedFiles.length > 0 ? attachedFiles[0].name : 'research_paper.pdf',
-                  pageNumber: Math.floor(Math.random() * 20) + 1,
-                  title: 'Academic Research Paper',
-                  type: 'pdf'
-                }
-              ]
-            }
-          : {
-              sources: [
-                {
-                  name: 'https://scholar.google.com/example-research-1',
-                  title: 'Academic Study on ' + inputValue,
-                  type: 'web'
-                }
-              ]
-            }
+        metadata: {
+          sources: data.metadata.map(mapAPIMetadataToSourceInfo)
+        }
       };
+
       setCurrentMessages(prev => [...prev, botResponse]);
+    } catch (error) {
+      console.error('Error calling API:', error);
+      
+      const errorResponse: Message = {
+        id: createMessageId(),
+        type: 'bot',
+        content: 'Sorry, I encountered an error while processing your request. Please try again.',
+        timestamp: new Date()
+      };
+      
+      setCurrentMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const pdfFiles = files.filter(file => file.type === 'application/pdf');
-    setAttachedFiles(prev => [...prev, ...pdfFiles]);
+    console.log('Selected files:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
     
-    // Set the first PDF as the current PDF for viewing
-    if (pdfFiles.length > 0 && !currentPDF) {
-      setCurrentPDF(pdfFiles[0]);
-      setShowPDFViewer(true);
+    const validPdfFiles = files.filter(isValidFile);
+    console.log('Valid PDF files:', validPdfFiles.map(f => ({ name: f.name, type: f.type, size: f.size })));
+    
+    if (validPdfFiles.length === 0) {
+      console.log('No valid PDF files found');
+      return;
+    }
+
+    setUploadLoading(true);
+    
+    try {
+      console.log('Starting file upload for:', validPdfFiles.length, 'files');
+      // Upload files to server
+      await apiService.uploadFiles(validPdfFiles);
+      console.log('File upload completed successfully');
+      
+      // Only add files to attached files and show PDF viewer after successful upload
+      setAttachedFiles(prev => [...prev, ...validPdfFiles]);
+      
+      // Set the first PDF as the current PDF for viewing
+      if (!currentPDF) {
+        setCurrentPDF(validPdfFiles[0]);
+        setShowPDFViewer(true);
+      }
+      
+      // Add success message
+      const uploadMessage: Message = {
+        id: createMessageId(),
+        type: 'bot',
+        content: `Successfully uploaded ${validPdfFiles.length} PDF file(s). You can now ask questions about your documents.`,
+        timestamp: new Date()
+      };
+      
+      setCurrentMessages(prev => [...prev, uploadMessage]);
+      
+    } catch (error) {
+      console.error('File upload failed:', error);
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: createMessageId(),
+        type: 'bot',
+        content: 'Failed to upload PDF file(s). Please try again.',
+        timestamp: new Date()
+      };
+      
+      setCurrentMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -390,6 +422,7 @@ const ChatInterface = () => {
                               : "Search for academic information on the web..."
                           }
                           className="min-h-[60px] resize-none"
+                          disabled={uploadLoading}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
@@ -404,16 +437,21 @@ const ChatInterface = () => {
                             variant="academicOutline"
                             size="icon"
                             onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadLoading}
                             className="h-10 w-10"
                           >
-                            <Paperclip className="w-4 h-4" />
+                            {uploadLoading ? (
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Paperclip className="w-4 h-4" />
+                            )}
                           </Button>
                         )}
                         <Button
                           variant="academic"
                           size="icon"
                           onClick={handleSendMessage}
-                          disabled={!inputValue.trim() && attachedFiles.length === 0}
+                          disabled={(!isValidMessage(inputValue) && attachedFiles.length === 0) || uploadLoading}
                           className="h-10 w-10"
                         >
                           <Send className="w-4 h-4" />
@@ -607,6 +645,7 @@ const ChatInterface = () => {
                           : "Search for academic information on the web..."
                       }
                       className="min-h-[60px] resize-none"
+                      disabled={uploadLoading}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -621,16 +660,21 @@ const ChatInterface = () => {
                         variant="academicOutline"
                         size="icon"
                         onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadLoading}
                         className="h-10 w-10"
                       >
-                        <Paperclip className="w-4 h-4" />
+                        {uploadLoading ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Paperclip className="w-4 h-4" />
+                        )}
                       </Button>
                     )}
                     <Button
                       variant="academic"
                       size="icon"
                       onClick={handleSendMessage}
-                      disabled={!inputValue.trim() && attachedFiles.length === 0}
+                      disabled={(!isValidMessage(inputValue) && attachedFiles.length === 0) || uploadLoading}
                       className="h-10 w-10"
                     >
                       <Send className="w-4 h-4" />
