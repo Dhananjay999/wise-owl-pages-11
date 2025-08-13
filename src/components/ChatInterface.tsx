@@ -130,18 +130,6 @@ const ChatInterface = () => {
                   pageNumber: Math.floor(Math.random() * 20) + 1,
                   title: 'Academic Research Paper',
                   type: 'pdf'
-                },
-                {
-                  name: 'academic_study.pdf',
-                  pageNumber: Math.floor(Math.random() * 15) + 5,
-                  title: 'Related Academic Study',
-                  type: 'pdf'
-                },
-                {
-                  name: 'methodology_guide.pdf',
-                  pageNumber: Math.floor(Math.random() * 30) + 10,
-                  title: 'Research Methodology Guide',
-                  type: 'pdf'
                 }
               ]
             }
@@ -150,16 +138,6 @@ const ChatInterface = () => {
                 {
                   name: 'https://scholar.google.com/example-research-1',
                   title: 'Academic Study on ' + inputValue,
-                  type: 'web'
-                },
-                {
-                  name: 'https://researchgate.net/publication/example-2',
-                  title: 'Research Publication - ' + inputValue + ' Analysis',
-                  type: 'web'
-                },
-                {
-                  name: 'https://arxiv.org/abs/example-3',
-                  title: 'Latest Research Paper on ' + inputValue,
                   type: 'web'
                 }
               ]
