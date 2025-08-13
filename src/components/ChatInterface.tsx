@@ -42,21 +42,42 @@ interface ChatMode {
 }
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState<Message[]>([
+  // Separate chat histories for each mode
+  const [pdfMessages, setPdfMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'bot',
-      content: 'Hello! I\'m your AI study assistant. I can help you with questions from your uploaded PDFs or search the web for academic information. How can I assist you today?',
+      content: 'Hello! I\'m your AI study assistant. Upload your PDFs and ask me questions about your documents. How can I help you study today?',
       timestamp: new Date(),
     }
   ]);
+  
+  const [webMessages, setWebMessages] = useState<Message[]>([
+    {
+      id: '1',
+      type: 'bot',
+      content: 'Hello! I\'m your AI study assistant. I can search the web for academic information and research. What would you like to learn about today?',
+      timestamp: new Date(),
+    }
+  ]);
+
   const [inputValue, setInputValue] = useState('');
   const [selectedMode, setSelectedMode] = useState<'pdf' | 'web'>('pdf');
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showMetadata, setShowMetadata] = useState<Record<string, boolean>>({});
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [webLoading, setWebLoading] = useState(false);
+  const [pdfMetadata, setPdfMetadata] = useState<Record<string, boolean>>({});
+  const [webMetadata, setWebMetadata] = useState<Record<string, boolean>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get current mode's data
+  const currentMessages = selectedMode === 'pdf' ? pdfMessages : webMessages;
+  const setCurrentMessages = selectedMode === 'pdf' ? setPdfMessages : setWebMessages;
+  const isLoading = selectedMode === 'pdf' ? pdfLoading : webLoading;
+  const setIsLoading = selectedMode === 'pdf' ? setPdfLoading : setWebLoading;
+  const showMetadata = selectedMode === 'pdf' ? pdfMetadata : webMetadata;
+  const setShowMetadata = selectedMode === 'pdf' ? setPdfMetadata : setWebMetadata;
 
   const chatModes: ChatMode[] = [
     {
@@ -84,7 +105,7 @@ const ChatInterface = () => {
       attachments: attachedFiles.length > 0 ? [...attachedFiles] : undefined
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setCurrentMessages(prev => [...prev, newMessage]);
     setInputValue('');
     setAttachedFiles([]);
     setIsLoading(true);
@@ -141,7 +162,7 @@ const ChatInterface = () => {
               ]
             }
       };
-      setMessages(prev => [...prev, botResponse]);
+      setCurrentMessages(prev => [...prev, botResponse]);
       setIsLoading(false);
     }, 2000);
   };
@@ -231,7 +252,7 @@ const ChatInterface = () => {
 
             {/* Messages */}
             <div className={cn("overflow-y-auto p-4 space-y-4 transition-all duration-500", isFullscreen ? "flex-1" : "h-96")}>
-              {messages.map((message) => (
+              {currentMessages.map((message) => (
                 <div
                   key={message.id}
                   className={cn(
