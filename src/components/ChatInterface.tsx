@@ -12,7 +12,9 @@ import {
   X,
   Bot,
   User,
-  Info
+  Info,
+  Expand,
+  Minimize
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +55,7 @@ const ChatInterface = () => {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showMetadata, setShowMetadata] = useState<Record<string, boolean>>({});
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const chatModes: ChatMode[] = [
@@ -161,48 +164,73 @@ const ChatInterface = () => {
   };
 
   return (
-    <section id="chat" className="py-20 bg-gradient-to-br from-background to-academic-light-rose/10">
-      <div className="container">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Start Your Study Session
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Upload your documents or ask questions about any academic topic
-          </p>
-        </div>
+    <section 
+      id="chat" 
+      className={cn(
+        "bg-gradient-to-br from-background to-academic-light-rose/10 transition-all duration-500",
+        isFullscreen 
+          ? "fixed inset-0 z-50 p-4" 
+          : "py-20"
+      )}
+    >
+      <div className={cn("transition-all duration-500", isFullscreen ? "h-full" : "container")}>
+        {!isFullscreen && (
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Start Your Study Session
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Upload your documents or ask questions about any academic topic
+            </p>
+          </div>
+        )}
 
-        <div className="max-w-4xl mx-auto">
-          <Card className="overflow-hidden shadow-xl">
+        <div className={cn("transition-all duration-500", isFullscreen ? "h-full" : "max-w-4xl mx-auto")}>
+          <Card className={cn("overflow-hidden shadow-xl transition-all duration-500", isFullscreen ? "h-full flex flex-col" : "")}>
             {/* Chat Mode Selection */}
             <div className="border-b p-4 bg-muted/30">
-              <div className="flex flex-col sm:flex-row gap-3">
-                {chatModes.map((mode) => {
-                  const IconComponent = mode.icon;
-                  return (
-                    <button
-                      key={mode.id}
-                      onClick={() => setSelectedMode(mode.id)}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 flex-1",
-                        selectedMode === mode.id
-                          ? "bg-academic-teal text-white shadow-md"
-                          : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <IconComponent className="w-5 h-5" />
-                      <div className="text-left">
-                        <div className="font-medium">{mode.label}</div>
-                        <div className="text-xs opacity-80">{mode.description}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                  {chatModes.map((mode) => {
+                    const IconComponent = mode.icon;
+                    return (
+                      <button
+                        key={mode.id}
+                        onClick={() => setSelectedMode(mode.id)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 flex-1",
+                          selectedMode === mode.id
+                            ? "bg-academic-teal text-white shadow-md"
+                            : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <IconComponent className="w-5 h-5" />
+                        <div className="text-left">
+                          <div className="font-medium">{mode.label}</div>
+                          <div className="text-xs opacity-80">{mode.description}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="academicOutline"
+                  size="icon"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="ml-4 h-10 w-10 flex-shrink-0"
+                  title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <Minimize className="w-4 h-4" />
+                  ) : (
+                    <Expand className="w-4 h-4" />
+                  )}
+                </Button>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="h-96 overflow-y-auto p-4 space-y-4">
+            <div className={cn("overflow-y-auto p-4 space-y-4 transition-all duration-500", isFullscreen ? "flex-1" : "h-96")}>
               {messages.map((message) => (
                 <div
                   key={message.id}
