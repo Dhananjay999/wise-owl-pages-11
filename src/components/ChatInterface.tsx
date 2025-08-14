@@ -675,9 +675,9 @@ const ChatInterface = () => {
               )}
 
               {/* Input */}
-              <div className="border-t p-3 md:p-4">
-                <div className="flex gap-2 md:gap-3 items-end">
-                  <div className="flex-1">
+              <div className="border-t bg-gradient-to-r from-background via-muted/20 to-background p-4 md:p-6">
+                <div className="flex gap-3 md:gap-4 items-end">
+                  <div className="flex-1 relative">
                     <Textarea
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
@@ -686,8 +686,8 @@ const ChatInterface = () => {
                           ? "Ask questions about your uploaded PDFs..." 
                           : "Ask me anything about your studies..."
                       }
-                      className="resize-none text-sm"
-                      rows={2}
+                      className="resize-none min-h-[48px] md:min-h-[52px] border-2 border-border/50 focus:border-academic-teal/50 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground/70 pr-16"
+                      rows={1}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -695,31 +695,38 @@ const ChatInterface = () => {
                         }
                       }}
                     />
-                  </div>
-                  
-                  <div className="flex flex-col gap-2">
+                    
+                    {/* Upload button inside textarea for PDF mode */}
                     {selectedMode === 'pdf' && (
                       <Button
-                        variant="academicOutline"
+                        variant="ghost"
                         size="icon"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadLoading}
                         title="Upload PDF"
-                        className="h-8 w-8 md:h-10 md:w-10"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-academic-teal/10 text-muted-foreground hover:text-academic-teal transition-colors"
                       >
-                        <Upload className="w-3 h-3 md:w-4 md:h-4" />
+                        {uploadLoading ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
                       </Button>
                     )}
-                    
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={(!inputValue.trim() && attachedFiles.length === 0) || isLoading}
-                      className="h-8 w-8 md:h-10 md:w-10"
-                      size="icon"
-                    >
-                      <Send className="w-3 h-3 md:w-4 md:h-4" />
-                    </Button>
                   </div>
+                  
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={(!inputValue.trim() && attachedFiles.length === 0) || isLoading}
+                    className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-r from-academic-teal to-academic-burgundy hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    size="icon"
+                  >
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5 text-white" />
+                    )}
+                  </Button>
                 </div>
               </div>
             </Card>
