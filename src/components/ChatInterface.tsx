@@ -456,7 +456,7 @@ const ChatInterface = () => {
                               ? "Ask a question about your uploaded documents..."
                               : "Search for academic information on the web..."
                           }
-                          className="min-h-[60px] resize-none"
+                          className="min-h-[60px] resize-none "
                           disabled={uploadLoading}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -688,6 +688,7 @@ const ChatInterface = () => {
                       }
                       className="resize-none min-h-[48px] md:min-h-[52px] border-2 border-border/50 focus:border-academic-teal/50 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground/70 pr-16"
                       rows={1}
+                      disabled={uploadLoading}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
