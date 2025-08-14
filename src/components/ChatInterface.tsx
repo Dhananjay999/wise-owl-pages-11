@@ -5,6 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PDFViewer } from "@/components/PDFViewer";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import ReactMarkdown from "react-markdown";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Send, 
   Upload, 
@@ -63,7 +66,10 @@ const ChatInterface = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [currentPDF, setCurrentPDF] = useState<File | null>(null);
+  const [showMobilePDF, setShowMobilePDF] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Prevent body scroll when fullscreen
   useEffect(() => {
@@ -85,6 +91,20 @@ const ChatInterface = () => {
   const setIsLoading = selectedMode === 'pdf' ? setPdfLoading : setWebLoading;
   const showMetadata = selectedMode === 'pdf' ? pdfMetadata : webMetadata;
   const setShowMetadata = selectedMode === 'pdf' ? setPdfMetadata : setWebMetadata;
+
+  // Scroll to bottom when messages change
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [currentMessages]);
 
   const chatModes: ChatMode[] = [
     {
@@ -176,7 +196,11 @@ const ChatInterface = () => {
       // Set the first PDF as the current PDF for viewing
       if (!currentPDF) {
         setCurrentPDF(validPdfFiles[0]);
-        setShowPDFViewer(true);
+        if (isMobile) {
+          setShowMobilePDF(true);
+        } else {
+          setShowPDFViewer(true);
+        }
       }
       
       // Add success message
@@ -215,6 +239,14 @@ const ChatInterface = () => {
       ...prev,
       [messageId]: !prev[messageId]
     }));
+  };
+
+  const togglePDFViewer = () => {
+    if (isMobile) {
+      setShowMobilePDF(!showMobilePDF);
+    } else {
+      setShowPDFViewer(!showPDFViewer);
+    }
   };
 
   return (
@@ -316,10 +348,13 @@ const ChatInterface = () => {
                   </div>
 
                   {/* Messages */}
-                  <div className={cn(
-                    "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
-                    isFullscreen ? "flex-1" : "h-80 md:h-96"
-                  )}>
+                  <div 
+                    ref={messagesContainerRef}
+                    className={cn(
+                      "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
+                      isFullscreen ? "flex-1" : "h-80 md:h-96"
+                    )}
+                  >
                     {currentMessages.map((message) => (
                       <div
                         key={message.id}
@@ -342,51 +377,21 @@ const ChatInterface = () => {
                               : "bg-muted text-foreground"
                           )}
                         >
-                          <p className="text-sm">{message.content}</p>
-                          
-                          {/* Metadata toggle button for bot messages */}
-                          {message.type === 'bot' && message.metadata && message.metadata.sources.length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-border/20">
-                              <button
-                                onClick={() => toggleMetadata(message.id)}
-                                className="flex items-center gap-2 text-xs opacity-70 hover:opacity-100 transition-opacity"
+                          {message.type === 'bot' ? (
+                            <div className="prose-chat">
+                              <ReactMarkdown
+                                components={{
+                                  a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>,
+                                }}
                               >
-                                <Info className="w-3 h-3" />
-                                <span>
-                                  {showMetadata[message.id] ? 'Hide' : 'Show'} sources ({message.metadata.sources.length})
-                                </span>
-                              </button>
-                              
-                              {/* Metadata display when expanded */}
-                              {showMetadata[message.id] && (
-                                <div className="mt-2 space-y-1">
-                                  {message.metadata.sources.map((source, index) => (
-                                    <div key={index} className="flex items-center gap-2 text-xs opacity-70 bg-background/20 p-2 rounded">
-                                      {source.type === 'web' ? (
-                                        <>
-                                          <Globe className="w-3 h-3 flex-shrink-0" />
-                                          <div className="min-w-0 flex-1">
-                                            <div className="truncate font-medium">{source.title}</div>
-                                            <div className="truncate text-xs opacity-60">{source.name}</div>
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <FileText className="w-3 h-3 flex-shrink-0" />
-                                          <div className="min-w-0 flex-1">
-                                            <div className="truncate font-medium">{source.title}</div>
-                                            <div className="truncate text-xs opacity-60">
-                                              {source.name} • Page {source.pageNumber}
-                                            </div>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                                {message.content}
+                              </ReactMarkdown>
                             </div>
+                          ) : (
+                            <p className="text-sm">{message.content}</p>
                           )}
+                          
+                      
                           
                           {message.attachments && message.attachments.length > 0 && (
                             <div className="mt-2 space-y-1">
@@ -429,11 +434,26 @@ const ChatInterface = () => {
                     <div className="px-4 py-2 border-t bg-muted/30">
                       <div className="flex flex-wrap gap-2">
                         {attachedFiles.map((file, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center gap-2">
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
+                            className={cn(
+                              "flex items-center gap-2",
+                              isMobile && currentPDF?.name === file.name && "bg-academic-teal text-white cursor-pointer hover:bg-academic-teal/90"
+                            )}
+                            onClick={() => {
+                              if (isMobile && currentPDF?.name === file.name) {
+                                setShowMobilePDF(true);
+                              }
+                            }}
+                          >
                             <FileText className="w-3 h-3" />
                             <span className="text-xs">{file.name}</span>
                             <button
-                              onClick={() => removeFile(index)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFile(index);
+                              }}
                               className="hover:bg-background/50 rounded-full p-0.5"
                             >
                               <X className="w-3 h-3" />
@@ -546,10 +566,13 @@ const ChatInterface = () => {
               </div>
 
               {/* Messages */}
-              <div className={cn(
-                "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
-                isFullscreen ? "flex-1" : "h-80 md:h-96"
-              )}>
+              <div 
+                ref={messagesContainerRef}
+                className={cn(
+                  "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
+                  isFullscreen ? "flex-1" : "h-80 md:h-96"
+                )}
+              >
                 {currentMessages.map((message) => (
                   <div
                     key={message.id}
@@ -572,51 +595,21 @@ const ChatInterface = () => {
                           : "bg-muted text-foreground"
                       )}
                     >
-                      <p className="text-sm">{message.content}</p>
-                      
-                      {/* Metadata toggle button for bot messages */}
-                      {message.type === 'bot' && message.metadata && (
-                        <div className="mt-2 pt-2 border-t border-border/20">
-                          <button
-                            onClick={() => toggleMetadata(message.id)}
-                            className="flex items-center gap-2 text-xs opacity-70 hover:opacity-100 transition-opacity"
+                      {message.type === 'bot' ? (
+                        <div className="prose-chat">
+                          <ReactMarkdown
+                            components={{
+                              a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>,
+                            }}
                           >
-                            <Info className="w-3 h-3" />
-                            <span>
-                              {showMetadata[message.id] ? 'Hide' : 'Show'} sources ({message.metadata.sources.length})
-                            </span>
-                          </button>
-                          
-                          {/* Metadata display when expanded */}
-                          {showMetadata[message.id] && (
-                            <div className="mt-2 space-y-1">
-                              {message.metadata.sources.map((source, index) => (
-                                <div key={index} className="flex items-center gap-2 text-xs opacity-70 bg-background/20 p-2 rounded">
-                                  {source.type === 'web' ? (
-                                    <>
-                                      <Globe className="w-3 h-3 flex-shrink-0" />
-                                      <div className="min-w-0 flex-1">
-                                        <div className="truncate font-medium">{source.title}</div>
-                                        <div className="truncate text-xs opacity-60">{source.name}</div>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <FileText className="w-3 h-3 flex-shrink-0" />
-                                      <div className="min-w-0 flex-1">
-                                        <div className="truncate font-medium">{source.title}</div>
-                                        <div className="truncate text-xs opacity-60">
-                                          {source.name} • Page {source.pageNumber}
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                            {message.content}
+                          </ReactMarkdown>
                         </div>
+                      ) : (
+                        <p className="text-sm">{message.content}</p>
                       )}
+                      
+                    
                       
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="mt-2 space-y-1">
@@ -659,11 +652,26 @@ const ChatInterface = () => {
                 <div className="px-3 md:px-4 py-2 border-t bg-muted/30">
                   <div className="flex flex-wrap gap-2">
                     {attachedFiles.map((file, index) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-2">
+                      <Badge 
+                        key={index} 
+                        variant="secondary" 
+                        className={cn(
+                          "flex items-center gap-2",
+                          isMobile && currentPDF?.name === file.name && "bg-academic-teal text-white cursor-pointer hover:bg-academic-teal/90"
+                        )}
+                        onClick={() => {
+                          if (isMobile && currentPDF?.name === file.name) {
+                            setShowMobilePDF(true);
+                          }
+                        }}
+                      >
                         <FileText className="w-3 h-3" />
                         <span className="text-xs">{file.name}</span>
                         <button
-                          onClick={() => removeFile(index)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(index);
+                          }}
                           className="hover:bg-background/50 rounded-full p-0.5"
                         >
                           <X className="w-3 h-3" />
@@ -743,6 +751,26 @@ const ChatInterface = () => {
           />
         </div>
       </div>
+
+      {/* Mobile PDF Drawer */}
+      <Drawer open={showMobilePDF} onOpenChange={setShowMobilePDF}>
+        <DrawerContent className="h-[80vh]">
+          <DrawerHeader>
+            <DrawerTitle className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              {currentPDF?.name}
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="flex-1 overflow-hidden">
+            <PDFViewer
+              file={currentPDF}
+              isVisible={showMobilePDF}
+              onToggleVisibility={() => setShowMobilePDF(false)}
+              className="h-full"
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </section>
   );
 };
