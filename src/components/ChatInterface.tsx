@@ -262,7 +262,7 @@ const ChatInterface = () => {
                       className="h-full"
                     />
                   </Panel>
-                  <PanelResizeHandle className="w-1 bg-border hover:bg-academic-teal/50 transition-colors" />
+                  <PanelResizeHandle className="bg-border hover:bg-academic-teal/50 transition-colors" />
                 </>
               )}
               
@@ -345,7 +345,7 @@ const ChatInterface = () => {
                           <p className="text-sm">{message.content}</p>
                           
                           {/* Metadata toggle button for bot messages */}
-                          {message.type === 'bot' && message.metadata && (
+                          {message.type === 'bot' && message.metadata && message.metadata.sources.length > 0 && (
                             <div className="mt-2 pt-2 border-t border-border/20">
                               <button
                                 onClick={() => toggleMetadata(message.id)}
