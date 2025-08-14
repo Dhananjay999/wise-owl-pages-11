@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { PDFViewer } from "@/components/PDFViewer";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { 
   Send, 
   Upload, 
@@ -63,6 +64,19 @@ const ChatInterface = () => {
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [currentPDF, setCurrentPDF] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Prevent body scroll when fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFullscreen]);
 
   // Get current mode's data
   const currentMessages = selectedMode === 'pdf' ? pdfMessages : webMessages;
@@ -209,42 +223,60 @@ const ChatInterface = () => {
       className={cn(
         "bg-gradient-to-br from-background to-academic-light-rose/10 transition-all duration-500",
         isFullscreen 
-          ? "fixed inset-0 z-50 p-4" 
-          : "py-20"
+          ? "fixed inset-0 z-50 p-2 md:p-4" 
+          : "py-10 md:py-20"
       )}
     >
-      <div className={cn("transition-all duration-500", isFullscreen ? "h-full" : "container")}>
+      <div className={cn("transition-all duration-500", isFullscreen ? "h-full" : "container px-4 md:px-6")}>
         {!isFullscreen && (
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-4xl font-bold mb-4">
               Start Your Study Session
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               Upload your documents or ask questions about any academic topic
             </p>
           </div>
         )}
 
-        <div className={cn("transition-all duration-500", isFullscreen ? "h-full" : "max-w-7xl mx-auto")}>
+        <div className={cn(
+          "transition-all duration-500", 
+          isFullscreen 
+            ? "h-full" 
+            : "max-w-7xl mx-auto",
+          !isFullscreen && !showPDFViewer && "flex justify-center"
+        )}>
           {selectedMode === 'pdf' && (showPDFViewer || currentPDF) ? (
-            <div className={cn("flex gap-4 transition-all duration-500", isFullscreen ? "h-full" : "")}>
-              {/* PDF Viewer */}
-              <div className={cn("transition-all duration-500", showPDFViewer ? "w-1/2" : "w-0 overflow-hidden")}>
-                <PDFViewer
-                  file={currentPDF}
-                  isVisible={showPDFViewer}
-                  onToggleVisibility={() => setShowPDFViewer(!showPDFViewer)}
-                  className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[600px]")}
-                />
-              </div>
+            <PanelGroup 
+              direction="horizontal" 
+              className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[600px]")}
+            >
+              {/* PDF Viewer Panel */}
+              {showPDFViewer && (
+                <>
+                  <Panel defaultSize={30} minSize={20} maxSize={60}>
+                    <PDFViewer
+                      file={currentPDF}
+                      isVisible={showPDFViewer}
+                      onToggleVisibility={() => setShowPDFViewer(!showPDFViewer)}
+                      className="h-full"
+                    />
+                  </Panel>
+                  <PanelResizeHandle className="w-1 bg-border hover:bg-academic-teal/50 transition-colors" />
+                </>
+              )}
               
-              {/* Chat Interface */}
-              <div className={cn("transition-all duration-500", showPDFViewer ? "w-1/2" : "w-full")}>
-                <Card className={cn("overflow-hidden shadow-xl transition-all duration-500", isFullscreen ? "h-full flex flex-col" : "")}>
+              {/* Chat Interface Panel */}
+              <Panel defaultSize={showPDFViewer ? 70 : 100} minSize={40}>
+                <Card className={cn(
+                  "overflow-hidden shadow-xl transition-all duration-500", 
+                  isFullscreen ? "h-full flex flex-col" : "",
+                  !isFullscreen && !showPDFViewer ? "max-w-4xl w-full" : ""
+                )}>
                   {/* Chat Mode Selection */}
-                  <div className="border-b p-4 bg-muted/30">
+                  <div className="border-b p-3 md:p-4 bg-muted/30">
                     <div className="flex items-center justify-between">
-                      <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                      <div className="flex flex-col md:flex-row gap-2 md:gap-3 flex-1">
                         {chatModes.map((mode) => {
                           const IconComponent = mode.icon;
                           return (
@@ -252,16 +284,16 @@ const ChatInterface = () => {
                               key={mode.id}
                               onClick={() => setSelectedMode(mode.id)}
                               className={cn(
-                                "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 flex-1",
+                                "flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg transition-all duration-200 flex-1 text-left",
                                 selectedMode === mode.id
                                   ? "bg-academic-teal text-white shadow-md"
                                   : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
                               )}
                             >
-                              <IconComponent className="w-5 h-5" />
-                              <div className="text-left">
-                                <div className="font-medium">{mode.label}</div>
-                                <div className="text-xs opacity-80">{mode.description}</div>
+                              <IconComponent className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                              <div className="min-w-0">
+                                <div className="font-medium text-sm md:text-base">{mode.label}</div>
+                                <div className="text-xs opacity-80 hidden md:block">{mode.description}</div>
                               </div>
                             </button>
                           );
@@ -271,20 +303,23 @@ const ChatInterface = () => {
                         variant="academicOutline"
                         size="icon"
                         onClick={() => setIsFullscreen(!isFullscreen)}
-                        className="ml-4 h-10 w-10 flex-shrink-0"
+                        className="ml-2 md:ml-4 h-8 w-8 md:h-10 md:w-10 flex-shrink-0"
                         title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                       >
                         {isFullscreen ? (
-                          <Minimize className="w-4 h-4" />
+                          <Minimize className="w-3 h-3 md:w-4 md:h-4" />
                         ) : (
-                          <Expand className="w-4 h-4" />
+                          <Expand className="w-3 h-3 md:w-4 md:h-4" />
                         )}
                       </Button>
                     </div>
                   </div>
 
                   {/* Messages */}
-                  <div className={cn("overflow-y-auto p-4 space-y-4 transition-all duration-500", isFullscreen ? "flex-1" : "h-96")}>
+                  <div className={cn(
+                    "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
+                    isFullscreen ? "flex-1" : "h-80 md:h-96"
+                  )}>
                     {currentMessages.map((message) => (
                       <div
                         key={message.id}
@@ -301,7 +336,7 @@ const ChatInterface = () => {
                         
                         <div
                           className={cn(
-                            "max-w-xs sm:max-w-md p-3 rounded-lg",
+                            "max-w-[280px] sm:max-w-md lg:max-w-lg p-3 rounded-lg",
                             message.type === 'user'
                               ? "bg-academic-teal text-white"
                               : "bg-muted text-foreground"
@@ -460,14 +495,18 @@ const ChatInterface = () => {
                     </div>
                   </div>
                 </Card>
-              </div>
-            </div>
+              </Panel>
+            </PanelGroup>
           ) : (
-            <Card className={cn("overflow-hidden shadow-xl transition-all duration-500", isFullscreen ? "h-full flex flex-col" : "")}>
+            <Card className={cn(
+              "overflow-hidden shadow-xl transition-all duration-500", 
+              isFullscreen ? "h-full flex flex-col" : "",
+              !isFullscreen ? "max-w-4xl w-full" : ""
+            )}>
               {/* Chat Mode Selection */}
-              <div className="border-b p-4 bg-muted/30">
+              <div className="border-b p-3 md:p-4 bg-muted/30">
                 <div className="flex items-center justify-between">
-                  <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                  <div className="flex flex-col md:flex-row gap-2 md:gap-3 flex-1">
                     {chatModes.map((mode) => {
                       const IconComponent = mode.icon;
                       return (
@@ -475,16 +514,16 @@ const ChatInterface = () => {
                           key={mode.id}
                           onClick={() => setSelectedMode(mode.id)}
                           className={cn(
-                            "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 flex-1",
+                            "flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg transition-all duration-200 flex-1 text-left",
                             selectedMode === mode.id
                               ? "bg-academic-teal text-white shadow-md"
                               : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
                           )}
                         >
-                          <IconComponent className="w-5 h-5" />
-                          <div className="text-left">
-                            <div className="font-medium">{mode.label}</div>
-                            <div className="text-xs opacity-80">{mode.description}</div>
+                          <IconComponent className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm md:text-base">{mode.label}</div>
+                            <div className="text-xs opacity-80 hidden md:block">{mode.description}</div>
                           </div>
                         </button>
                       );
@@ -494,37 +533,40 @@ const ChatInterface = () => {
                     variant="academicOutline"
                     size="icon"
                     onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="ml-4 h-10 w-10 flex-shrink-0"
+                    className="ml-2 md:ml-4 h-8 w-8 md:h-10 md:w-10 flex-shrink-0"
                     title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                   >
                     {isFullscreen ? (
-                      <Minimize className="w-4 h-4" />
+                      <Minimize className="w-3 h-3 md:w-4 md:h-4" />
                     ) : (
-                      <Expand className="w-4 h-4" />
+                      <Expand className="w-3 h-3 md:w-4 md:h-4" />
                     )}
                   </Button>
                 </div>
               </div>
 
               {/* Messages */}
-              <div className={cn("overflow-y-auto p-4 space-y-4 transition-all duration-500", isFullscreen ? "flex-1" : "h-96")}>
+              <div className={cn(
+                "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
+                isFullscreen ? "flex-1" : "h-80 md:h-96"
+              )}>
                 {currentMessages.map((message) => (
                   <div
                     key={message.id}
                     className={cn(
-                      "flex gap-3",
+                      "flex gap-2 md:gap-3",
                       message.type === 'user' ? "justify-end" : "justify-start"
                     )}
                   >
                     {message.type === 'bot' && (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-4 h-4 text-white" />
+                      <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
                     )}
                     
                     <div
                       className={cn(
-                        "max-w-xs sm:max-w-md p-3 rounded-lg",
+                        "max-w-[280px] sm:max-w-md lg:max-w-lg p-3 rounded-lg",
                         message.type === 'user'
                           ? "bg-academic-teal text-white"
                           : "bg-muted text-foreground"
@@ -589,17 +631,17 @@ const ChatInterface = () => {
                     </div>
 
                     {message.type === 'user' && (
-                      <div className="w-8 h-8 rounded-full bg-academic-rose flex items-center justify-center flex-shrink-0">
-                        <User className="w-4 h-4 text-white" />
+                      <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-academic-rose flex items-center justify-center flex-shrink-0">
+                        <User className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
                     )}
                   </div>
                 ))}
                 
                 {isLoading && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center">
-                      <Bot className="w-4 h-4 text-white" />
+                  <div className="flex gap-2 md:gap-3 justify-start">
+                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center">
+                      <Bot className="w-3 h-3 md:w-4 md:h-4 text-white" />
                     </div>
                     <div className="bg-muted p-3 rounded-lg">
                       <div className="flex gap-1">
@@ -614,7 +656,7 @@ const ChatInterface = () => {
 
               {/* File attachments preview */}
               {attachedFiles.length > 0 && (
-                <div className="px-4 py-2 border-t bg-muted/30">
+                <div className="px-3 md:px-4 py-2 border-t bg-muted/30">
                   <div className="flex flex-wrap gap-2">
                     {attachedFiles.map((file, index) => (
                       <Badge key={index} variant="secondary" className="flex items-center gap-2">
@@ -633,19 +675,19 @@ const ChatInterface = () => {
               )}
 
               {/* Input */}
-              <div className="border-t p-4">
-                <div className="flex gap-3 items-end">
+              <div className="border-t p-3 md:p-4">
+                <div className="flex gap-2 md:gap-3 items-end">
                   <div className="flex-1">
                     <Textarea
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       placeholder={
-                        selectedMode === 'pdf'
-                          ? "Ask a question about your uploaded documents..."
-                          : "Search for academic information on the web..."
+                        selectedMode === 'pdf' 
+                          ? "Ask questions about your uploaded PDFs..." 
+                          : "Ask me anything about your studies..."
                       }
-                      className="min-h-[60px] resize-none"
-                      disabled={uploadLoading}
+                      className="resize-none text-sm"
+                      rows={2}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -654,30 +696,28 @@ const ChatInterface = () => {
                       }}
                     />
                   </div>
-                  <div className="flex gap-2 mb-2">
+                  
+                  <div className="flex flex-col gap-2">
                     {selectedMode === 'pdf' && (
                       <Button
                         variant="academicOutline"
                         size="icon"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadLoading}
-                        className="h-10 w-10"
+                        title="Upload PDF"
+                        className="h-8 w-8 md:h-10 md:w-10"
                       >
-                        {uploadLoading ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Paperclip className="w-4 h-4" />
-                        )}
+                        <Upload className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                     )}
+                    
                     <Button
-                      variant="academic"
-                      size="icon"
                       onClick={handleSendMessage}
-                      disabled={(!isValidMessage(inputValue) && attachedFiles.length === 0) || uploadLoading}
-                      className="h-10 w-10"
+                      disabled={(!inputValue.trim() && attachedFiles.length === 0) || isLoading}
+                      className="h-8 w-8 md:h-10 md:w-10"
+                      size="icon"
                     >
-                      <Send className="w-4 h-4" />
+                      <Send className="w-3 h-3 md:w-4 md:h-4" />
                     </Button>
                   </div>
                 </div>
