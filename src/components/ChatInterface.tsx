@@ -280,18 +280,18 @@ const ChatInterface = () => {
             : "max-w-7xl mx-auto",
           !isFullscreen && !showPDFViewer && "flex justify-center"
         )}>
-          {selectedMode === 'pdf' && showPDFViewer ? (
+          {selectedMode === 'pdf' && (attachedFiles.length > 0 || currentPDF) ? (
             <PanelGroup 
               direction="horizontal" 
               className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[600px]")}
             >
-              {/* PDF Viewer Panel */}
+              {/* PDF Viewer Panel - Always render when PDF exists, but control visibility */}
               {showPDFViewer && (
                 <>
                   <Panel defaultSize={30} minSize={20} maxSize={60}>
                     <PDFViewer
                       file={currentPDF}
-                      isVisible={showPDFViewer}
+                      isVisible={true}
                       onToggleVisibility={() => setShowPDFViewer(!showPDFViewer)}
                       className="h-full"
                     />
