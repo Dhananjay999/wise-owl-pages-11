@@ -283,7 +283,7 @@ const ChatInterface = () => {
           {selectedMode === 'pdf' && showPDFViewer ? (
             <PanelGroup 
               direction="horizontal" 
-              className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[600px] max-h-[600px]")}
+              className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[600px]")}
             >
               {/* PDF Viewer Panel */}
               {showPDFViewer && (
@@ -515,7 +515,7 @@ const ChatInterface = () => {
                               ? "Ask a question about your uploaded documents..."
                               : "Search for academic information on the web..."
                           }
-                          className="min-h-[56px] md:min-h-[60px] resize-none border-2 border-border focus:border-academic-teal rounded-xl bg-background shadow-sm transition-all duration-200 placeholder:text-muted-foreground pr-12"
+                          className="min-h-[56px] md:min-h-[60px] resize-none border-2 border-border/50 focus:border-academic-teal/50 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground/70 pr-12 scrollbar-hide"
                           disabled={uploadLoading}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
