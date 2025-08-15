@@ -189,7 +189,7 @@ const ChatInterface = () => {
     try {
       console.log('Starting file upload for:', validPdfFiles.length, 'files');
       // Upload files to server
-      await apiService.uploadFiles(validPdfFiles);
+      // await apiService.uploadFiles(validPdfFiles);
       console.log('File upload completed successfully');
       
       // Only add files to attached files and show PDF viewer after successful upload
