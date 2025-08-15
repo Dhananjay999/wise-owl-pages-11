@@ -806,7 +806,7 @@ const ChatInterface = () => {
                   <Button
                     onClick={handleSendMessage}
                     disabled={(!inputValue.trim() && attachedFiles.length === 0) || isLoading}
-                    className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-r from-academic-teal to-academic-burgundy hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-gradient-to-r from-academic-teal to-academic-burgundy hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     size="icon"
                   >
                     {isLoading ? (
