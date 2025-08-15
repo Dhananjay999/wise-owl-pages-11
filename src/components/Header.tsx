@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { BookOpen, Brain, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
+import AuthModal from "./AuthModal";
 
 const Header = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,12 +60,22 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <Button variant="academic" size="sm" className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
+            <Button 
+              variant="academic" 
+              size="sm" 
+              className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2"
+              onClick={() => setIsAuthModalOpen(true)}
+            >
               Login / Sign Up
             </Button>
           </div>
         </div>
       </header>
+      
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </>
   );
 };
