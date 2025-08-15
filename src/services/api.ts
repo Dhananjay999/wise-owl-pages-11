@@ -1,5 +1,6 @@
 import { API_ENDPOINTS, API_HEADERS, API_CONFIG, SEARCH_MODES } from '@/constants/api';
 import { APIRequest, APIResponse } from '@/types';
+import { getFingerprintId } from '@/utils/fingerprint';
 
 class ApiService {
   private baseUrl: string;
@@ -14,10 +15,20 @@ class ApiService {
     const url = `${this.baseUrl}${endpoint}`;
     
     try {
+      // Get fingerprint ID for user identification
+      const fingerprintId = await getFingerprintId();
+      
       // For FormData, don't set Content-Type header (browser sets it automatically)
-      const headers = options.body instanceof FormData 
+      const baseHeaders = options.body instanceof FormData 
         ? { 'accept': 'application/json' }
         : { ...this.headers, ...options.headers };
+      
+      // Add fingerprint ID to all requests
+      const headers = {
+        ...baseHeaders,
+        'X-Fingerprint-ID': fingerprintId,
+        'user-id': fingerprintId,
+      };
 
       const response = await fetch(url, {
         ...options,
