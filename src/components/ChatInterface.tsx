@@ -283,7 +283,7 @@ const ChatInterface = () => {
           {selectedMode === 'pdf' && showPDFViewer ? (
             <PanelGroup 
               direction="horizontal" 
-              className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[600px]")}
+              className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[600px] max-h-[600px]")}
             >
               {/* PDF Viewer Panel */}
               {showPDFViewer && (
