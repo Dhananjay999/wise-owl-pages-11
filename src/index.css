@@ -124,6 +124,14 @@ All colors MUST be HSL.
     @apply prose prose-sm prose-gray max-w-none;
   }
   
+  .prose-chat > *:first-child {
+    margin-top: 0 !important;
+  }
+  
+  .prose-chat > *:last-child {
+    margin-bottom: 0 !important;
+  }
+  
   .prose-chat h1 {
     @apply text-lg font-bold mb-2 text-foreground;
   }
@@ -140,16 +148,36 @@ All colors MUST be HSL.
     @apply mb-2 last:mb-0 text-sm text-foreground;
   }
   
+  .prose-chat p:first-child {
+    @apply mt-0;
+  }
+  
+  .prose-chat > p:first-child {
+    @apply mt-0;
+  }
+  
   .prose-chat ul {
-    @apply list-disc list-inside mb-2 space-y-1;
+    @apply list-disc list-outside mb-2 space-y-1 pl-5;
   }
   
   .prose-chat ol {
-    @apply list-decimal list-inside mb-2 space-y-1;
+    @apply list-decimal list-outside mb-2 space-y-1 pl-5;
   }
   
   .prose-chat li {
     @apply text-sm text-foreground;
+  }
+  
+  .prose-chat li::marker {
+    color: hsl(var(--academic-teal)) !important;
+  }
+  
+  .prose-chat ul li::marker {
+    color: hsl(var(--academic-teal)) !important;
+  }
+  
+  .prose-chat ol li::marker {
+    color: hsl(var(--academic-teal)) !important;
   }
   
   .prose-chat code {

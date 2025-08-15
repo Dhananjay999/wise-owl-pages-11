@@ -111,7 +111,7 @@ export const PDFViewer = ({ file, isVisible, onToggleVisibility, className }: PD
       </div>
 
       {/* PDF Content */}
-      <div className="flex-1 overflow-auto bg-gray-50 p-4">
+      <div className="flex-1 overflow-auto bg-gray-50 p-2 md:p-4">
         {file ? (
           <div className="flex flex-col items-center min-h-full">
             <Document
@@ -134,12 +134,14 @@ export const PDFViewer = ({ file, isVisible, onToggleVisibility, className }: PD
                 rotate={rotation}
                 loading={
                   <div className="flex items-center justify-center p-4">
-                    <div className="animate-pulse bg-gray-200 w-96 h-128 rounded"></div>
+                    <div className="animate-pulse bg-gray-200 w-80 h-96 rounded"></div>
                   </div>
                 }
-                className="shadow-lg mb-4 max-w-full"
+                className="shadow-lg mb-2 md:mb-4 max-w-full"
                 width={undefined}
                 height={undefined}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
               />
             </Document>
           </div>

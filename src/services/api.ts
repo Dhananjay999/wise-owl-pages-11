@@ -95,6 +95,37 @@ class ApiService {
       body: formData,
     });
   }
+
+  async getUploadedFiles(): Promise<{ user_id: string; file_names: string[]; total_files: number }> {
+    const fingerprintId = await getFingerprintId();
+    return this.makeRequest<{ user_id: string; file_names: string[]; total_files: number }>(
+      `${API_ENDPOINTS.GET_FILES}${fingerprintId}`,
+      {
+        method: 'GET',
+      }
+    );
+  }
+
+  async deleteFile(fileName: string): Promise<{ user_id: string; file_name: string; chunks_deleted: number; message: string }> {
+    const fingerprintId = await getFingerprintId();
+    const encodedFileName = encodeURIComponent(fileName);
+    return this.makeRequest<{ user_id: string; file_name: string; chunks_deleted: number; message: string }>(
+      `${API_ENDPOINTS.DELETE_FILE}?file_name=${encodedFileName}`,
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
+  async deleteAllFiles(): Promise<{ user_id: string; chunks_deleted: number; message: string }> {
+    const fingerprintId = await getFingerprintId();
+    return this.makeRequest<{ user_id: string; chunks_deleted: number; message: string }>(
+      API_ENDPOINTS.DELETE_ALL_FILES,
+      {
+        method: 'DELETE',
+      }
+    );
+  }
 }
 
 // Export singleton instance
