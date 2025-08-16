@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,18 +20,93 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGoogleAuth = () => {
-    setIsLoading(true);
-    // Add your Google SSO logic here
-    setTimeout(() => setIsLoading(false), 2000);
+  // Form states
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+
+  const { toast } = useToast();
+
+  const handleGoogleAuth = async () => {
+    try {
+      setIsLoading(true);
+      const redirectTo = `${window.location.origin}/auth`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo }
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({ title: "Google sign-in failed", description: error.message || "Try again.", });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEmailAuth = (isSignUp: boolean) => {
-    setIsLoading(true);
-    // Add your email auth logic here
-    setTimeout(() => setIsLoading(false), 2000);
-  };
+  const handleEmailAuth = async (isSignUp: boolean) => {
+    try {
+      setIsLoading(true);
+      if (isSignUp) {
+        if (!firstName || !signupEmail || !signupPassword) {
+          toast({ title: "Missing fields", description: "Please fill all required fields." });
+          return;
+        }
+        if (signupPassword !== signupConfirmPassword) {
+          toast({ title: "Passwords do not match", description: "Please confirm your password." });
+          return;
+        }
+        const fullName = `${firstName} ${lastName}`.trim();
+        const redirectTo = `${window.location.origin}/auth`;
+        const { data, error } = await supabase.auth.signUp({
+          email: signupEmail,
+          password: signupPassword,
+          options: {
+            emailRedirectTo: redirectTo,
+            data: { full_name: fullName }
+          }
+        });
+        if (error) throw error;
 
+        // If session exists (email confirmations disabled), upsert profile now
+        if (data.session && data.user) {
+          await supabase.from("profiles").upsert({
+            user_id: data.user.id,
+            full_name: fullName,
+          });
+          toast({ title: "Account created", description: "You're signed in!" });
+          onClose();
+        } else {
+          toast({ title: "Check your email", description: "Confirm your address to finish sign up." });
+          onClose();
+        }
+      } else {
+        if (!loginEmail || !loginPassword) {
+          toast({ title: "Missing credentials", description: "Enter email and password." });
+          return;
+        }
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password: loginPassword,
+        });
+        if (error) throw error;
+        // Optionally ensure a profile exists
+        if (data.user) {
+          await supabase.from("profiles").upsert({ user_id: data.user.id });
+        }
+        toast({ title: "Welcome back", description: "Signed in successfully." });
+        onClose();
+      }
+    } catch (error: any) {
+      toast({ title: "Authentication error", description: error.message || "Please try again." });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md w-[95vw] sm:w-full p-0 gap-0 overflow-hidden">
@@ -86,6 +163,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                         type="email"
                         placeholder="Enter your email"
                         className="pl-10 h-12"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
                       />
                     </div>
                   </div>
@@ -99,6 +178,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         className="pl-10 pr-10 h-12"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
                       />
                       <button
                         type="button"
@@ -162,6 +243,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                         id="first-name"
                         placeholder="John"
                         className="h-12"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -170,6 +253,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                         id="last-name"
                         placeholder="Doe"
                         className="h-12"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
                       />
                     </div>
                   </div>
@@ -183,6 +268,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                         type="email"
                         placeholder="Enter your email"
                         className="pl-10 h-12"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
                       />
                     </div>
                   </div>
@@ -196,6 +283,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a password"
                         className="pl-10 pr-10 h-12"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
                       />
                       <button
                         type="button"
@@ -216,6 +305,8 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
                         type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
                         className="pl-10 pr-10 h-12"
+                        value={signupConfirmPassword}
+                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
                       />
                       <button
                         type="button"
