@@ -2,36 +2,29 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Brain, MessageSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import AuthModal from "./AuthModal";
-import { supabase } from "@/integrations/supabase/client";
 
 const Header = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        // Scrolling down and past initial 100px
         setIsVisible(false);
       } else {
+        // Scrolling up
         setIsVisible(true);
       }
+      
       setLastScrollY(currentScrollY);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setIsAuthenticated(!!session);
-    });
-    supabase.auth.getSession().then(({ data }) => setIsAuthenticated(!!data.session));
-
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      subscription.unsubscribe();
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
   return (
@@ -67,25 +60,14 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-3">
-            {isAuthenticated ? (
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2"
-                onClick={() => supabase.auth.signOut()}
-              >
-                Logout
-              </Button>
-            ) : (
-              <Button 
-                variant="academic" 
-                size="sm" 
-                className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2"
-                onClick={() => setIsAuthModalOpen(true)}
-              >
-                Login / Sign Up
-              </Button>
-            )}
+            <Button 
+              variant="academic" 
+              size="sm" 
+              className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2"
+              onClick={() => setIsAuthModalOpen(true)}
+            >
+              Login / Sign Up
+            </Button>
           </div>
         </div>
       </header>
