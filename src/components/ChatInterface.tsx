@@ -49,6 +49,8 @@ import {
 } from "@/utils";
 import { useToast } from "@/hooks/use-toast";
 import NewSessionDialog from "@/components/NewSessionDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import AuthModal from "./AuthModal";
 
 const ChatInterface = () => {
   // Separate chat histories for each mode
@@ -82,7 +84,6 @@ const ChatInterface = () => {
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [currentPDF, setCurrentPDF] = useState<File | null>(null);
   const [showMobilePDF, setShowMobilePDF] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<number | null>(null);
   const [rememberDeleteDecision, setRememberDeleteDecision] = useState(false);
@@ -94,10 +95,12 @@ const ChatInterface = () => {
   const [previewNotAvailableFileName, setPreviewNotAvailableFileName] = useState('');
   const [showMobileFileSheet, setShowMobileFileSheet] = useState(false);
   const [showNewSessionConfirmation, setShowNewSessionConfirmation] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { isAuthenticated, user } = useAuth();
 
   // Prevent body scroll when fullscreen
   useEffect(() => {
@@ -429,7 +432,12 @@ I can help you understand and work with the content more effectively when you as
   };
 
   const handleStartNewSession = () => {
-    setShowNewSessionConfirmation(true);
+    console.log('handleStartNewSession', isAuthenticated);
+    if (isAuthenticated) {
+      confirmNewSession();
+    } else {
+      setShowNewSessionConfirmation(true);
+    }
   };
 
   const confirmNewSession = async () => {
@@ -639,7 +647,7 @@ I can help you understand and work with the content more effectively when you as
                   </div>
 
                   {/* Login Prompt Banner */}
-                  {!isFullscreen && showLoginPrompt && (
+                  {!isFullscreen && !isAuthenticated && (
                     <div className="border-b border-academic-teal/20 bg-gradient-to-r from-academic-teal/5 to-academic-burgundy/5 p-2 md:p-4">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 md:gap-3">
@@ -656,16 +664,13 @@ I can help you understand and work with the content more effectively when you as
                           </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                          <Button variant="academic" size="sm" className="text-xs px-3 md:px-4 py-1 md:py-2 h-7 md:h-9">
-                            Login / Sign Up
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setShowLoginPrompt(false)}
-                            className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground hover:text-foreground flex-shrink-0"
+                          <Button 
+                            variant="academic" 
+                            size="sm" 
+                            className="text-xs px-3 md:px-4 py-1 md:py-2 h-7 md:h-9"
+                            onClick={() => setShowAuthModal(true)}
                           >
-                            <X className="w-3 h-3 md:w-4 md:h-4" />
+                            Login / Sign Up
                           </Button>
                         </div>
                       </div>
@@ -953,7 +958,7 @@ I can help you understand and work with the content more effectively when you as
               </div>
 
               {/* Login Prompt Banner */}
-              {!isFullscreen && showLoginPrompt && (
+              {!isFullscreen && !isAuthenticated && (
                 <div className="border-b border-academic-teal/20 bg-gradient-to-r from-academic-teal/5 to-academic-burgundy/5 p-2 md:p-4">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 md:gap-3">
@@ -969,19 +974,16 @@ I can help you understand and work with the content more effectively when you as
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                      <Button variant="academic" size="sm" className="text-xs px-3 md:px-4 py-1 md:py-2 h-7 md:h-9">
-                        Login / Sign Up
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setShowLoginPrompt(false)}
-                        className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground hover:text-foreground flex-shrink-0"
-                      >
-                        <X className="w-3 h-3 md:w-4 md:h-4" />
-                      </Button>
-                    </div>
+                                            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                          <Button 
+                            variant="academic" 
+                            size="sm" 
+                            className="text-xs px-3 md:px-4 py-1 md:py-2 h-7 md:h-9"
+                            onClick={() => setShowAuthModal(true)}
+                          >
+                            Login / Sign Up
+                          </Button>
+                        </div>
                   </div>
                 </div>
               )}
@@ -1493,13 +1495,21 @@ I can help you understand and work with the content more effectively when you as
         </DrawerContent>
       </Drawer>
 
-      {/* New Session Dialog */}
-      <NewSessionDialog
-        open={showNewSessionConfirmation}
-        onOpenChange={setShowNewSessionConfirmation}
-        selectedMode={selectedMode}
-        onConfirm={confirmNewSession}
-        onCancel={cancelNewSession}
+      {/* New Session Dialog - Only show for authenticated users */}
+      {isAuthenticated && (
+        <NewSessionDialog
+          open={showNewSessionConfirmation}
+          onOpenChange={setShowNewSessionConfirmation}
+          selectedMode={selectedMode}
+          onConfirm={confirmNewSession}
+          onCancel={cancelNewSession}
+        />
+      )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </section>
   );
