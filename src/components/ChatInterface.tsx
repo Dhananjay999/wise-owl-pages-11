@@ -32,7 +32,9 @@ import {
   Minimize,
   Brain,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  Sparkles,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SEARCH_MODES } from "@/constants";
@@ -80,7 +82,6 @@ const ChatInterface = () => {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [pdfMetadata, setPdfMetadata] = useState<Record<string, boolean>>({});
   const [webMetadata, setWebMetadata] = useState<Record<string, boolean>>({});
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [showPDFViewer, setShowPDFViewer] = useState(false);
   const [currentPDF, setCurrentPDF] = useState<File | null>(null);
   const [showMobilePDF, setShowMobilePDF] = useState(false);
@@ -101,19 +102,6 @@ const ChatInterface = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isAuthenticated, user } = useAuth();
-
-  // Prevent body scroll when fullscreen
-  useEffect(() => {
-    if (isFullscreen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isFullscreen]);
 
   // Get current mode's data
   const currentMessages = selectedMode === 'pdf' ? pdfMessages : webMessages;
@@ -159,14 +147,14 @@ const ChatInterface = () => {
   const chatModes: ChatMode[] = [
     {
       id: 'pdf',
-      label: 'From PDF',
+      label: 'PDF Documents',
       icon: FileText,
       description: 'Ask questions about your uploaded documents',
       searchMode: 'study_material'
     },
     {
       id: 'web',
-      label: 'Web Results',
+      label: 'Web Search',
       icon: Globe,
       description: 'Search the web for academic information',
       searchMode: 'web_search'
@@ -326,11 +314,8 @@ I can help you understand and work with the content more effectively when you as
       toast({
         title: "File Deleted Successfully",
         description: response.message,
-        className: "bg-gradient-to-r from-academic-teal/10 to-academic-burgundy/10 border-2 border-academic-teal/30 text-academic-teal shadow-lg",
-        action: (
-          <div className="w-2 h-2 bg-academic-teal rounded-full animate-pulse"></div>
-        ),
-        duration: 2000, // Auto-close after 2 seconds
+        className: "bg-card/90 backdrop-blur-sm border-primary/20",
+        duration: 2000,
       });
     } catch (error) {
       console.error('Failed to delete file:', error);
@@ -339,11 +324,8 @@ I can help you understand and work with the content more effectively when you as
       toast({
         title: "Delete Failed",
         description: "Failed to delete file. Please try again.",
-        className: "bg-gradient-to-r from-academic-burgundy/10 to-academic-rose/10 border-2 border-academic-burgundy/30 text-academic-burgundy shadow-lg",
-        action: (
-          <div className="w-2 h-2 bg-academic-burgundy rounded-full animate-pulse"></div>
-        ),
-        duration: 2000, // Auto-close after 2 seconds
+        className: "bg-destructive/90 backdrop-blur-sm border-destructive/20",
+        duration: 2000,
       });
     }
   };
@@ -360,11 +342,8 @@ I can help you understand and work with the content more effectively when you as
       toast({
         title: "File Deleted Successfully",
         description: response.message,
-        className: "bg-gradient-to-r from-academic-teal/10 to-academic-burgundy/10 border-2 border-academic-teal/30 text-academic-teal shadow-lg",
-        action: (
-          <div className="w-2 h-2 bg-academic-teal rounded-full animate-pulse"></div>
-        ),
-        duration: 2000, // Auto-close after 2 seconds
+        className: "bg-card/90 backdrop-blur-sm border-primary/20",
+        duration: 2000,
       });
     } catch (error) {
       console.error('Failed to delete file:', error);
@@ -373,11 +352,8 @@ I can help you understand and work with the content more effectively when you as
       toast({
         title: "Delete Failed",
         description: "Failed to delete file. Please try again.",
-        className: "bg-gradient-to-r from-academic-burgundy/10 to-academic-rose/10 border-2 border-academic-burgundy/30 text-academic-burgundy shadow-lg",
-        action: (
-          <div className="w-2 h-2 bg-academic-burgundy rounded-full animate-pulse"></div>
-        ),
-        duration: 2000, // Auto-close after 2 seconds
+        className: "bg-destructive/90 backdrop-blur-sm border-destructive/20",
+        duration: 2000,
       });
     }
   };
@@ -431,6 +407,24 @@ I can help you understand and work with the content more effectively when you as
     setShowPreviewNotAvailable(true);
   };
 
+  const handleDeleteUploadedFileName = async (fileName: string) => {
+    if (skipDeleteConfirmation) {
+      await removeUploadedFileName(fileName);
+    } else {
+      setPreviewNotAvailableFileName(fileName);
+      setShowDeleteConfirmation(true);
+    }
+  };
+
+  const handlePDFClick = (file: File) => {
+    setCurrentPDF(file);
+    if (isMobile) {
+      setShowMobilePDF(true);
+    } else {
+      setShowPDFViewer(true);
+    }
+  };
+
   const handleStartNewSession = () => {
     console.log('handleStartNewSession', isAuthenticated);
     if (isAuthenticated) {
@@ -466,10 +460,7 @@ I can help you understand and work with the content more effectively when you as
         toast({
           title: "New Session Started",
           description: `Successfully cleared PDF session. ${response.message}`,
-          className: "bg-gradient-to-r from-academic-teal/10 to-academic-burgundy/10 border-2 border-academic-teal/30 text-academic-teal shadow-lg",
-          action: (
-            <div className="w-2 h-2 bg-academic-teal rounded-full animate-pulse"></div>
-          ),
+          className: "bg-card/90 backdrop-blur-sm border-primary/20",
           duration: 2000,
         });
       } else {
@@ -488,24 +479,17 @@ I can help you understand and work with the content more effectively when you as
         toast({
           title: "New Session Started",
           description: "Successfully cleared web search session.",
-          className: "bg-gradient-to-r from-academic-teal/10 to-academic-burgundy/10 border-2 border-academic-teal/30 text-academic-teal shadow-lg",
-          action: (
-            <div className="w-2 h-2 bg-academic-teal rounded-full animate-pulse"></div>
-          ),
+          className: "bg-card/90 backdrop-blur-sm border-primary/20",
           duration: 2000,
         });
       }
     } catch (error) {
       console.error('Failed to start new session:', error);
       
-      // Show error toast
       toast({
-        title: "Session Reset Failed",
+        title: "New Session Failed",
         description: "Failed to start new session. Please try again.",
-        className: "bg-gradient-to-r from-academic-burgundy/10 to-academic-rose/10 border-2 border-academic-burgundy/30 text-academic-burgundy shadow-lg",
-        action: (
-          <div className="w-2 h-2 bg-academic-burgundy rounded-full animate-pulse"></div>
-        ),
+        className: "bg-destructive/90 backdrop-blur-sm border-destructive/20",
         duration: 2000,
       });
     } finally {
@@ -515,893 +499,661 @@ I can help you understand and work with the content more effectively when you as
 
   const cancelNewSession = () => {
     setShowNewSessionConfirmation(false);
-  };
-
-  const handleDeleteUploadedFileName = async (fileName: string) => {
-    if (skipDeleteConfirmation) {
-      // Direct delete if user chose to remember their decision
-      await removeUploadedFileName(fileName);
-    } else {
-      setPreviewNotAvailableFileName(fileName);
-      setShowDeleteConfirmation(true);
+    // Show auth modal for non-authenticated users
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
     }
   };
 
-  const toggleMetadata = (messageId: string) => {
-    setShowMetadata(prev => ({
-      ...prev,
-      [messageId]: !prev[messageId]
-    }));
+  // Message Bubble Component
+  const MessageBubble = ({ message, showMetadata, setShowMetadata }: {
+    message: Message;
+    showMetadata: Record<string, boolean>;
+    setShowMetadata: (value: Record<string, boolean>) => void;
+  }) => {
+    const isUser = message.type === 'user';
+    const messageId = message.id;
+    const hasMetadata = message.metadata?.sources && message.metadata.sources.length > 0;
+    
+    return (
+      <div className={cn(
+        "flex gap-4 max-w-4xl animate-fade-in",
+        isUser ? "ml-auto flex-row-reverse" : "mr-auto"
+      )}>
+        <div className={cn(
+          "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-md",
+          isUser 
+            ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground" 
+            : "bg-gradient-to-br from-accent to-accent/80 text-accent-foreground"
+        )}>
+          {isUser ? (
+            <User className="h-5 w-5" />
+          ) : (
+            <Bot className="h-5 w-5" />
+          )}
+        </div>
+        
+        <div className={cn(
+          "flex-1 space-y-2",
+          isUser ? "text-right" : "text-left"
+        )}>
+          <div className={cn(
+            "inline-block p-4 rounded-2xl shadow-sm backdrop-blur-sm transition-all duration-200 hover:shadow-md",
+            isUser 
+              ? "bg-primary/10 border border-primary/20 text-foreground rounded-br-sm" 
+              : "bg-card/80 border border-border/50 text-foreground rounded-bl-sm"
+          )}>
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {message.attachments.map((file, index) => (
+                  <Badge 
+                    key={index} 
+                    variant="secondary" 
+                    className="flex items-center gap-1 bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span className="text-xs">{file.name}</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            
+            <div className={cn(
+              "prose prose-sm max-w-none prose-chat",
+              isUser ? "text-right" : "text-left"
+            )}>
+              <ReactMarkdown>{message.content}</ReactMarkdown>
+            </div>
+          </div>
+          
+          {hasMetadata && (
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMetadata({ ...showMetadata, [messageId]: !showMetadata[messageId] })}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Info className="w-3 h-3 mr-1" />
+                {showMetadata[messageId] ? 'Hide Sources' : 'Show Sources'}
+              </Button>
+              
+              {showMetadata[messageId] && message.metadata?.sources && (
+                <Card className="p-3 bg-muted/30 border-border/50">
+                  <h4 className="text-xs font-medium text-muted-foreground mb-2">Sources:</h4>
+                  <div className="space-y-1">
+                    {message.metadata.sources.map((source, index) => (
+                      <div key={index} className="text-xs text-muted-foreground">
+                        <span className="font-medium">{source.title}</span>
+                        {source.pageNumber && (
+                          <span className="ml-2 text-primary">Page {source.pageNumber}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
+          
+          <div className="text-xs text-muted-foreground">
+            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const togglePDFViewer = () => {
-    if (isMobile) {
-      setShowMobilePDF(!showMobilePDF);
-    } else {
-      setShowPDFViewer(!showPDFViewer);
-    }
+  // Chat Input Component
+  const ChatInput = ({ inputValue, setInputValue, attachedFiles, onSend, onFileUpload, onDeleteFile, fileInputRef, isLoading, uploadLoading, selectedMode }: {
+    inputValue: string;
+    setInputValue: (value: string) => void;
+    attachedFiles: File[];
+    onSend: () => void;
+    onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    onDeleteFile: (index: number) => void;
+    fileInputRef: React.RefObject<HTMLInputElement>;
+    isLoading: boolean;
+    uploadLoading: boolean;
+    selectedMode: 'pdf' | 'web';
+  }) => {
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        onSend();
+      }
+    };
+
+    return (
+      <div className="space-y-3">
+        {attachedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {attachedFiles.map((file, index) => (
+              <Badge 
+                key={index} 
+                variant="secondary" 
+                className="flex items-center gap-2 px-3 py-2 bg-card/80 border border-border/50 hover:bg-card transition-colors"
+              >
+                <FileText className="w-3 h-3" />
+                <span className="text-xs font-medium">{file.name}</span>
+                <button
+                  onClick={() => onDeleteFile(index)}
+                  className="hover:bg-background/50 rounded-full p-1 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
+        
+        <div className="relative">
+          <Textarea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={selectedMode === 'pdf' ? "Ask questions about your PDFs..." : "Search the web for information..."}
+            className="min-h-[60px] pr-32 resize-none bg-background/80 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all duration-200"
+            disabled={isLoading}
+          />
+          
+          <div className="absolute bottom-2 right-2 flex items-center gap-2">
+            {selectedMode === 'pdf' && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  onChange={onFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading || uploadLoading}
+                  className="h-8 w-8 p-0 hover:bg-accent/50 transition-colors"
+                >
+                  {uploadLoading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
+            )}
+            
+            <Button
+              onClick={onSend}
+              disabled={(!isValidMessage(inputValue) && attachedFiles.length === 0) || isLoading}
+              size="sm"
+              className="h-8 w-8 p-0 bg-primary hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // File Panel Component
+  const FilePanel = ({ attachedFiles, uploadedFileNames, isLoadingUploadedFiles, onFileUpload, onDeleteFile, fileInputRef, uploadLoading, currentPDF, onPDFClick, onUploadedFileNameClick }: {
+    attachedFiles: File[];
+    uploadedFileNames: string[];
+    isLoadingUploadedFiles: boolean;
+    onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    onDeleteFile: (index: number) => void;
+    fileInputRef: React.RefObject<HTMLInputElement>;
+    uploadLoading: boolean;
+    currentPDF: File | null;
+    onPDFClick: (file: File) => void;
+    onUploadedFileNameClick: (fileName: string) => void;
+  }) => {
+    return (
+      <div className="h-full flex flex-col bg-gradient-to-b from-card/20 to-card/40 backdrop-blur-sm">
+        <div className="p-4 border-b border-border/50">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Documents
+            </h3>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              multiple
+              onChange={onFileUpload}
+              className="hidden"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadLoading}
+              size="sm"
+              className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-all duration-200"
+            >
+              {uploadLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Upload className="h-4 w-4 mr-2" />
+              )}
+              Upload
+            </Button>
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Current Session Files */}
+          {attachedFiles.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Current Session
+              </h4>
+              <div className="space-y-2">
+                {attachedFiles.map((file, index) => (
+                  <div
+                    key={`attached-${index}`}
+                    className={cn(
+                      "p-3 rounded-lg border cursor-pointer transition-all duration-200 group hover:shadow-md",
+                      currentPDF?.name === file.name && showPDFViewer
+                        ? "bg-primary/10 border-primary/30 shadow-sm"
+                        : "bg-card/60 border-border/30 hover:bg-card/80"
+                    )}
+                    onClick={() => onPDFClick(file)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                        <span className="text-sm font-medium truncate">{file.name}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteFile(index);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 hover:bg-background/50 rounded-full p-1 transition-all duration-200"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Previous Session Files */}
+          {uploadedFileNames.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Previous Sessions
+              </h4>
+              <div className="space-y-2">
+                {uploadedFileNames.map((fileName, index) => (
+                  <div
+                    key={`uploaded-${index}`}
+                    className="p-3 rounded-lg border border-dashed border-border/50 cursor-pointer transition-all duration-200 group hover:border-border hover:bg-card/40"
+                    onClick={() => onUploadedFileNameClick(fileName)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="text-sm text-muted-foreground truncate">{fileName}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteUploadedFileName(fileName);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 hover:bg-background/50 rounded-full p-1 transition-all duration-200"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {attachedFiles.length === 0 && uploadedFileNames.length === 0 && !isLoadingUploadedFiles && (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm mb-1">No documents uploaded</p>
+              <p className="text-xs opacity-70">Upload PDFs to start asking questions</p>
+            </div>
+          )}
+          
+          {isLoadingUploadedFiles && (
+            <div className="text-center py-8">
+              <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
+              <p className="text-sm text-muted-foreground">Loading files...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <section 
-      id="chat" 
-      className={cn(
-        "bg-gradient-to-br from-background to-academic-light-rose/10 transition-all duration-500",
-        isFullscreen 
-          ? "fixed inset-0 z-50 p-2 md:p-4" 
-          : "py-10 md:py-20"
-      )}
-    >
-      <div className={cn("transition-all duration-500", isFullscreen ? "h-full" : "container px-3 md:px-6")}>
-        {!isFullscreen && (
-          <div className="text-center mb-6 md:mb-12">
-            <h2 className="text-xl md:text-4xl font-bold mb-3 md:mb-4">
-              Start Your Study Session
-            </h2>
-            <p className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Upload your documents or ask questions about any academic topic
-            </p>
+    <section id="chat" className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Full-screen Chat Container */}
+      <div className="h-screen flex flex-col bg-background/95 backdrop-blur-sm">
+        
+        {/* Header */}
+        <header className="flex items-center justify-between p-4 border-b border-border/50 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Brain className="h-7 w-7 text-primary animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full animate-ping"></div>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                StudyBot AI
+              </h1>
+              <p className="text-xs text-muted-foreground">Your AI Study Assistant</p>
+            </div>
           </div>
-        )}
-
-        <div className={cn(
-          "transition-all duration-500", 
-          isFullscreen 
-            ? "h-full" 
-            : "max-w-7xl mx-auto",
-          !isFullscreen && (!showPDFViewer || selectedMode !== 'pdf') && "flex justify-center"
-        )}>
-          {selectedMode === 'pdf' && (attachedFiles.length > 0 || currentPDF) && showPDFViewer ? (
-            <PanelGroup 
-              direction="horizontal" 
-              className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[500px]")}
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleStartNewSession}
+              disabled={isLoading}
+              className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
             >
-              {/* PDF Viewer Panel */}
-              <Panel defaultSize={35} minSize={20} maxSize={60}>
-                    <PDFViewer
-                      file={currentPDF}
-                      isVisible={true}
-                      onToggleVisibility={() => setShowPDFViewer(!showPDFViewer)}
-                      className="h-full"
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              <span className="hidden sm:inline ml-2">New Session</span>
+            </Button>
+          </div>
+        </header>
+
+        {/* Mode Selection */}
+        <div className="flex items-center justify-center gap-2 p-4 border-b border-border/50 bg-gradient-to-r from-muted/20 via-muted/30 to-muted/20">
+          {chatModes.map((mode) => {
+            const Icon = mode.icon;
+            const isActive = selectedMode === mode.id;
+            
+            return (
+              <Button
+                key={mode.id}
+                variant={isActive ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedMode(mode.id as 'pdf' | 'web')}
+                className={cn(
+                  "flex items-center gap-2 transition-all duration-200 relative group",
+                  isActive && "shadow-lg shadow-primary/20 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground",
+                  !isActive && "hover:bg-accent/50 hover:scale-105"
+                )}
+                disabled={isLoading}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="hidden sm:inline font-medium">{mode.label}</span>
+                {isActive && (
+                  <div className="absolute inset-0 rounded-md bg-gradient-to-r from-primary/20 to-primary/10 animate-pulse" />
+                )}
+              </Button>
+            );
+          })}
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-hidden">
+          {isMobile ? (
+            // Mobile Layout
+            <div className="flex flex-col h-full">
+              {/* File Panel Button for Mobile */}
+              {selectedMode === 'pdf' && (
+                <div className="p-3 border-b border-border/50 bg-card/50">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMobileFileSheet(true)}
+                    className="w-full justify-start gap-2 hover:bg-accent/50 transition-all duration-200"
+                  >
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Files ({attachedFiles.length + uploadedFileNames.length})</span>
+                    <ChevronDown className="h-4 w-4 ml-auto" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-hidden bg-gradient-to-b from-transparent to-muted/10">
+                <div 
+                  ref={messagesContainerRef}
+                  className="h-full overflow-y-auto p-4 space-y-4 scrollbar-hide"
+                >
+                  {currentMessages.map((message, index) => (
+                    <MessageBubble 
+                      key={message.id} 
+                      message={message} 
+                      showMetadata={showMetadata}
+                      setShowMetadata={setShowMetadata}
+                    />
+                  ))}
+                  
+                  {isLoading && (
+                    <div className="flex items-start gap-3 p-4 bg-card/60 backdrop-blur-sm rounded-lg border border-border/50 shadow-sm animate-fade-in">
+                      <div className="relative">
+                        <Bot className="h-6 w-6 text-primary animate-pulse" />
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-ping"></div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">AI is thinking...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Input Area */}
+              <div className="p-4 border-t border-border/50 bg-gradient-to-r from-card/50 via-card/80 to-card/50 backdrop-blur-sm">
+                <ChatInput
+                  inputValue={inputValue}
+                  setInputValue={setInputValue}
+                  attachedFiles={attachedFiles}
+                  onSend={handleSendMessage}
+                  onFileUpload={handleFileUpload}
+                  onDeleteFile={handleDeleteFile}
+                  fileInputRef={fileInputRef}
+                  isLoading={isLoading}
+                  uploadLoading={uploadLoading}
+                  selectedMode={selectedMode}
+                />
+              </div>
+            </div>
+          ) : (
+            // Desktop Layout with Resizable Panels
+            <PanelGroup direction="horizontal" className="h-full">
+              {/* File Panel */}
+              {selectedMode === 'pdf' && (
+                <>
+                  <Panel 
+                    defaultSize={22} 
+                    minSize={18} 
+                    maxSize={35}
+                    className="bg-gradient-to-b from-card/40 to-card/60 border-r border-border/50"
+                  >
+                    <FilePanel
+                      attachedFiles={attachedFiles}
+                      uploadedFileNames={uploadedFileNames}
+                      isLoadingUploadedFiles={isLoadingUploadedFiles}
+                      onFileUpload={handleFileUpload}
+                      onDeleteFile={handleDeleteFile}
+                      fileInputRef={fileInputRef}
+                      uploadLoading={uploadLoading}
+                      currentPDF={currentPDF}
+                      onPDFClick={handlePDFClick}
+                      onUploadedFileNameClick={handleUploadedFileNameClick}
                     />
                   </Panel>
-                  <PanelResizeHandle className="bg-border hover:bg-academic-teal/50 transition-colors" />
-              
-              {/* Chat Interface Panel */}
-              <Panel defaultSize={65} minSize={40}>
-                <Card className={cn(
-                  "overflow-hidden shadow-xl transition-all duration-500", 
-                  isFullscreen ? "h-full flex flex-col" : "max-w-4xl w-full"
-                )}>
-                  {/* Chat Mode Selection */}
-                  <div className="border-b p-3 md:p-4 bg-muted/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-row gap-2 md:gap-3 flex-1">
-                        {chatModes.map((mode) => {
-                          const IconComponent = mode.icon;
-                          return (
-                            <button
-                              key={mode.id}
-                              onClick={() => setSelectedMode(mode.id)}
-                              className={cn(
-                                "flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-xl transition-all duration-200 flex-1 text-left",
-                                selectedMode === mode.id
-                                  ? "bg-academic-teal text-white shadow-lg"
-                                  : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
-                              )}
-                            >
-                              <IconComponent className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                              <div className="min-w-0">
-                                <div className="font-semibold text-xs md:text-base">{mode.label}</div>
-                                <div className="text-xs opacity-80 hidden md:block">{mode.description}</div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="flex items-center gap-2 md:gap-3 ml-2 md:ml-4">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handleStartNewSession}
-                          className="h-8 w-8 md:h-10 md:w-10 border-academic-burgundy/30 text-academic-burgundy hover:bg-academic-burgundy/10 hover:border-academic-burgundy/50 transition-all duration-200 rounded-xl shadow-md"
-                          title="Start new chat session"
-                        >
-                          <RefreshCw className="w-3 h-3 md:w-4 md:h-4" />
-                        </Button>
-                        <Button
-                          variant="academicOutline"
-                          size="icon"
-                          onClick={() => setIsFullscreen(!isFullscreen)}
-                          className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0 rounded-xl shadow-md"
-                          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                        >
-                        {isFullscreen ? (
-                          <Minimize className="w-3 h-3 md:w-4 md:h-4" />
-                        ) : (
-                          <Expand className="w-3 h-3 md:w-4 md:h-4" />
-                        )}
-                      </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Login Prompt Banner */}
-                  {!isFullscreen && !isAuthenticated && (
-                    <div className="border-b border-academic-teal/20 bg-gradient-to-r from-academic-teal/5 to-academic-burgundy/5 p-2 md:p-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 md:gap-3">
-                          <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-academic-teal/10 flex items-center justify-center flex-shrink-0">
-                            <Brain className="w-3 h-3 md:w-4 md:h-4 text-academic-teal" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs md:text-base font-medium text-foreground leading-tight">
-                              Save your chat history
-                            </p>
-                            <p className="text-xs text-muted-foreground leading-tight hidden sm:block">
-                              Login or sign up to save your conversations and access them later
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                          <Button 
-                            variant="academic" 
-                            size="sm" 
-                            className="text-xs px-3 md:px-4 py-1 md:py-2 h-7 md:h-9"
-                            onClick={() => setShowAuthModal(true)}
-                          >
-                            Login / Sign Up
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Messages */}
-                  <div 
-                    ref={messagesContainerRef}
-                    className={cn(
-                      "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
-                      isFullscreen ? "flex-1" : "h-80 md:h-96"
-                    )}
-                  >
-                    {currentMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={cn(
-                          "flex gap-3",
-                          message.type === 'user' ? "justify-end" : "justify-start"
-                        )}
-                      >
-                        {message.type === 'bot' && (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center flex-shrink-0">
-                            <Bot className="w-4 h-4 text-white" />
-                          </div>
-                        )}
-                        
-                        <div
-                          className={cn(
-                            "max-w-[280px] sm:max-w-md lg:max-w-lg p-3 rounded-lg",
-                            message.type === 'user'
-                              ? "bg-academic-teal text-white"
-                              : "bg-muted text-foreground"
-                          )}
-                        >
-                          {message.type === 'bot' ? (
-                            <div className="prose-chat">
-                              <ReactMarkdown
-                                components={{
-                                  a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>,
-                                }}
-                              >
-                                {message.content}
-                              </ReactMarkdown>
-                            </div>
-                          ) : (
-                            <p className="text-sm">{message.content}</p>
-                          )}
-                          
-                      
-                          
-                          {message.attachments && message.attachments.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {message.attachments.map((file, index) => (
-                                <div key={index} className="flex items-center gap-2 text-xs opacity-80">
-                                  <FileText className="w-3 h-3" />
-                                  <span>{file.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {message.type === 'user' && (
-                          <div className="w-8 h-8 rounded-full bg-academic-rose flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-white" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {isLoading && (
-                      <div className="flex gap-3 justify-start">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center">
-                          <Bot className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="bg-muted p-3 rounded-lg">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-academic-teal rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-academic-burgundy rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                            <div className="w-2 h-2 bg-academic-rose rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* File attachments preview */}
-                  {selectedMode === 'pdf' && (attachedFiles.length > 0 || uploadedFileNames.length > 0) && (
-                    <div className="border-t bg-muted/30">
-                      <div className="px-3 md:px-4 py-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground">Uploaded Files</span>
-                          <button
-                            onClick={() => {
-                              if (isMobile) {
-                                setShowMobileFileSheet(true);
-                              } else {
-                                setIsFilePanelExpanded(!isFilePanelExpanded);
-                              }
-                            }}
-                            className="text-xs text-academic-teal hover:text-academic-teal/80 transition-colors flex items-center gap-1"
-                          >
-                            {isFilePanelExpanded ? 'Collapse' : 'Expand'}
-                            <ChevronDown className={cn("w-3 h-3 transition-transform", isFilePanelExpanded && "rotate-180")} />
-                          </button>
-                        </div>
-                        <div className={cn(
-                          "flex flex-wrap gap-2 transition-all duration-30",
-                          isFilePanelExpanded ? "max-h-32 overflow-y-auto 0 mt-2" : "max-h-0 overflow-hidden"
-                        )}>
-                          {/* Currently attached files (with preview) */}
-                        {attachedFiles.map((file, index) => (
-                          <Badge 
-                              key={`attached-${index}`} 
-                            variant="secondary" 
-                            className={cn(
-                                "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0",
-                                currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-academic-teal text-white hover:bg-academic-teal/90 shadow-md"
-                            )}
-                            onClick={() => {
-                                // Set the clicked file as the current PDF
-                                setCurrentPDF(file);
-                                if (isMobile) {
-                                  setShowMobilePDF(true);
-                                } else {
-                                  setShowPDFViewer(true);
-                              }
-                            }}
-                          >
-                            <FileText className="w-3 h-3" />
-                            <span className="text-xs font-medium">{file.name}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                  handleDeleteFile(index);
-                                }}
-                                className="hover:bg-background/50 rounded-full p-1 transition-colors"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                          
-                          {/* Previously uploaded files (no preview) */}
-                          {uploadedFileNames.map((fileName, index) => (
-                            <Badge 
-                              key={`uploaded-${index}`} 
-                              variant="outline" 
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer border-dashed border-academic-burgundy/30 text-academic-burgundy/70 hover:border-academic-burgundy/50 hover:text-academic-burgundy flex-shrink-0"
-                              onClick={() => handleUploadedFileNameClick(fileName)}
-                            >
-                              <FileText className="w-3 h-3" />
-                              <span className="text-xs font-medium">{fileName}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteUploadedFileName(fileName);
-                              }}
-                              className="hover:bg-background/50 rounded-full p-1 transition-colors"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Input */}
-                  <div className="border-t p-3 md:p-4 bg-gradient-to-r from-background via-muted/20 to-background">
-                    <div className="flex gap-3 items-end align-center">
-                      <div className="flex-1 relative">
-                        <Textarea
-                          value={inputValue}
-                          onChange={(e) => setInputValue(e.target.value)}
-                          placeholder={
-                            selectedMode === 'pdf'
-                              ? "Ask a question about your uploaded documents..."
-                              : "Search for academic information on the web..."
-                          }
-                          className="min-h-[56px] md:min-h-[60px] resize-none border-2 border-border/50 focus:border-academic-teal/50 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground/70 pr-12 scrollbar-hide"
-                          disabled={uploadLoading}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendMessage();
-                            }
-                          }}
-                        />
-                        {selectedMode === 'pdf' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploadLoading}
-                            title="Upload PDF"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-academic-teal/10 text-muted-foreground hover:text-academic-teal transition-colors rounded-lg"
-                          >
-                            {uploadLoading ? (
-                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Upload className="w-4 h-4" />
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                      <Button
-                        variant="academic"
-                        size="icon"
-                        onClick={handleSendMessage}
-                        disabled={(!isValidMessage(inputValue) && attachedFiles.length === 0) || uploadLoading}
-                        className="h-12 w-12 md:h-10 md:w-10 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-                      >
-                        {uploadLoading ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4 text-white" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </Panel>
-            </PanelGroup>
-          ) : (
-            <Card className={cn(
-              "overflow-hidden shadow-xl transition-all duration-500", 
-              isFullscreen ? "h-full flex flex-col" : "max-w-4xl w-full"
-            )}>
-              {/* Chat Mode Selection */}
-              <div className="border-b p-3 md:p-4 bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-row gap-2 md:gap-3 flex-1">
-                    {chatModes.map((mode) => {
-                      const IconComponent = mode.icon;
-                      return (
-                        <button
-                          key={mode.id}
-                          onClick={() => setSelectedMode(mode.id)}
-                          className={cn(
-                            "flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-xl transition-all duration-200 flex-1 text-left",
-                            selectedMode === mode.id
-                              ? "bg-academic-teal text-white shadow-lg"
-                              : "bg-background hover:bg-muted text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <IconComponent className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-semibold text-xs md:text-base">{mode.label}</div>
-                            <div className="text-xs opacity-80 hidden md:block">{mode.description}</div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                      <div className="flex items-center gap-2 md:gap-3 ml-2 md:ml-4">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handleStartNewSession}
-                          className="h-8 w-8 md:h-10 md:w-10 border-academic-burgundy/30 text-academic-burgundy hover:bg-academic-burgundy/10 hover:border-academic-burgundy/50 transition-all duration-200 rounded-xl shadow-md"
-                          title="Start new chat session"
-                        >
-                          <RefreshCw className="w-3 h-3 md:w-4 md:h-4" />
-                        </Button>
-
-                  <Button
-                    variant="academicOutline"
-                    size="icon"
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                          className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0 rounded-xl shadow-md"
-                    title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                  >
-                    {isFullscreen ? (
-                      <Minimize className="w-3 h-3 md:w-4 md:h-4" />
-                    ) : (
-                      <Expand className="w-3 h-3 md:w-4 md:h-4" />
-                    )}
-                  </Button>
-                      </div>
-                </div>
-              </div>
-
-              {/* Login Prompt Banner */}
-              {!isFullscreen && !isAuthenticated && (
-                <div className="border-b border-academic-teal/20 bg-gradient-to-r from-academic-teal/5 to-academic-burgundy/5 p-2 md:p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-academic-teal/10 flex items-center justify-center flex-shrink-0">
-                        <Brain className="w-3 h-3 md:w-4 md:h-4 text-academic-teal" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs md:text-base font-medium text-foreground leading-tight">
-                          Save your chat history
-                        </p>
-                        <p className="text-xs text-muted-foreground leading-tight hidden sm:block">
-                          Login or sign up to save your conversations and access them later
-                        </p>
-                      </div>
-                    </div>
-                                            <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-                          <Button 
-                            variant="academic" 
-                            size="sm" 
-                            className="text-xs px-3 md:px-4 py-1 md:py-2 h-7 md:h-9"
-                            onClick={() => setShowAuthModal(true)}
-                          >
-                            Login / Sign Up
-                          </Button>
-                        </div>
-                  </div>
-                </div>
+                  <PanelResizeHandle className="w-1 bg-border/50 hover:bg-primary/30 transition-all duration-200 relative group">
+                    <div className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-primary/20 group-hover:bg-primary/50 transition-colors" />
+                  </PanelResizeHandle>
+                </>
               )}
 
-              {/* Messages */}
-              <div 
-                ref={messagesContainerRef}
-                className={cn(
-                  "overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 transition-all duration-500", 
-                  isFullscreen ? "flex-1" : "h-80 md:h-96"
-                )}
-              >
-                {currentMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={cn(
-                      "flex gap-2 md:gap-3",
-                      message.type === 'user' ? "justify-end" : "justify-start"
-                    )}
-                  >
-                    {message.type === 'bot' && (
-                      <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                      </div>
-                    )}
-                    
-                    <div
-                      className={cn(
-                        "max-w-[280px] sm:max-w-md lg:max-w-lg p-3 rounded-lg",
-                        message.type === 'user'
-                          ? "bg-academic-teal text-white"
-                          : "bg-muted text-foreground"
-                      )}
+              {/* Chat Panel */}
+              <Panel defaultSize={selectedMode === 'pdf' ? 50 : 78} minSize={45}>
+                <div className="flex flex-col h-full bg-gradient-to-br from-background/50 to-muted/10">
+                  {/* Chat Messages */}
+                  <div className="flex-1 overflow-hidden">
+                    <div 
+                      ref={messagesContainerRef}
+                      className="h-full overflow-y-auto p-6 space-y-6 scrollbar-hide"
                     >
-                      {message.type === 'bot' ? (
-                        <div className="prose-chat">
-                          <ReactMarkdown
-                            components={{
-                              a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>,
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <p className="text-sm">{message.content}</p>
-                      )}
+                      {currentMessages.map((message, index) => (
+                        <MessageBubble 
+                          key={message.id} 
+                          message={message} 
+                          showMetadata={showMetadata}
+                          setShowMetadata={setShowMetadata}
+                        />
+                      ))}
                       
-                    
-                      
-                      {message.attachments && message.attachments.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {message.attachments.map((file, index) => (
-                            <div key={index} className="flex items-center gap-2 text-xs opacity-80">
-                              <FileText className="w-3 h-3" />
-                              <span>{file.name}</span>
+                      {isLoading && (
+                        <div className="flex items-start gap-4 p-6 bg-card/60 backdrop-blur-sm rounded-xl border border-border/50 shadow-lg animate-fade-in">
+                          <div className="relative">
+                            <Bot className="h-7 w-7 text-primary animate-pulse" />
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-ping"></div>
+                          </div>
+                          <div className="flex flex-col gap-3">
+                            <div className="flex gap-1.5">
+                              <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce"></div>
+                              <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                             </div>
-                          ))}
+                            <p className="text-sm text-muted-foreground font-medium">AI is analyzing and thinking...</p>
+                          </div>
                         </div>
                       )}
                     </div>
-
-                    {message.type === 'user' && (
-                      <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-academic-rose flex items-center justify-center flex-shrink-0">
-                        <User className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {isLoading && (
-                  <div className="flex gap-2 md:gap-3 justify-start">
-                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gradient-to-r from-academic-teal to-academic-burgundy flex items-center justify-center">
-                      <Bot className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                    </div>
-                    <div className="bg-muted p-3 rounded-lg">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-academic-teal rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-academic-burgundy rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-academic-rose rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* File attachments preview */}
-              {selectedMode === 'pdf' && (attachedFiles.length > 0 || uploadedFileNames.length > 0) && (
-                <div className="border-t bg-muted/30">
-                  <div className="px-3 md:px-4 py-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-muted-foreground">Uploaded Files</span>
-                      <button
-                        onClick={() => {
-                          if (isMobile) {
-                            setShowMobileFileSheet(true);
-                          } else {
-                            setIsFilePanelExpanded(!isFilePanelExpanded);
-                          }
-                        }}
-                        className="text-xs text-academic-teal hover:text-academic-teal/80 transition-colors flex items-center gap-1"
-                      >
-                        {isFilePanelExpanded ? 'Collapse' : 'Expand'}
-                        <ChevronDown className={cn("w-3 h-3 transition-transform", isFilePanelExpanded && "rotate-180")} />
-                      </button>
-                    </div>
-                    <div className={cn(
-                      "flex flex-wrap gap-2 transition-all duration-300",
-                      isFilePanelExpanded ? "max-h-32 overflow-y-auto  mt-2" : "max-h-0 overflow-hidden"
-                    )}>
-                      {/* Currently attached files (with preview) */}
-                    {attachedFiles.map((file, index) => (
-                      <Badge 
-                          key={`attached-${index}`} 
-                        variant="secondary" 
-                        className={cn(
-                            "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0",
-                            currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-academic-teal text-white hover:bg-academic-teal/90 shadow-md"
-                        )}
-                        onClick={() => {
-                            // Set the clicked file as the current PDF
-                            setCurrentPDF(file);
-                            if (isMobile) {
-                              setShowMobilePDF(true);
-                            } else {
-                              setShowPDFViewer(true);
-                          }
-                        }}
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span className="text-xs font-medium">{file.name}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteFile(index);
-                          }}
-                          className="hover:bg-background/50 rounded-full p-1 transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                    
-                    {/* Previously uploaded files (no preview) */}
-                    {uploadedFileNames.map((fileName, index) => (
-                      <Badge 
-                        key={`uploaded-${index}`} 
-                        variant="outline" 
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer border-dashed border-academic-burgundy/30 text-academic-burgundy/70 hover:border-academic-burgundy/50 hover:text-academic-burgundy flex-shrink-0"
-                        onClick={() => handleUploadedFileNameClick(fileName)}
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span className="text-xs font-medium">{fileName}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteUploadedFileName(fileName);
-                          }}
-                          className="hover:bg-background/50 rounded-full p-1 transition-colors"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Input */}
-              <div className="border-t bg-gradient-to-r from-background via-muted/20 to-background p-3 md:p-6">
-                <div className="flex gap-3 md:gap-4 items-center">
-                  <div className="flex-1 relative">
-                    <Textarea
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder={
-                        selectedMode === 'pdf' 
-                          ? "Ask questions about your uploaded PDFs..." 
-                          : "Ask me anything about your studies..."
-                      }
-                      className="resize-none min-h-[56px] md:min-h-[52px] border-2 border-border/50 focus:border-academic-teal/50 rounded-xl bg-background/80 backdrop-blur-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground/70 pr-12 scrollbar-hide"
-                      rows={1}
-                      disabled={uploadLoading}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                    />
-                    
-                    {/* Upload button inside textarea for PDF mode */}
-                    {selectedMode === 'pdf' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadLoading}
-                        title="Upload PDF"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-academic-teal/10 text-muted-foreground hover:text-academic-teal transition-colors rounded-lg"
-                      >
-                        {uploadLoading ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Upload className="w-4 h-4" />
-                        )}
-                      </Button>
-                    )}
                   </div>
                   
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={(!inputValue.trim() && attachedFiles.length === 0) || isLoading}
-                    className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-gradient-to-r from-academic-teal to-academic-burgundy hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    size="icon"
-                  >
-                    {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Send className="w-5 h-5 text-white" />
-                    )}
-                  </Button>
+                  {/* Input Area */}
+                  <div className="p-6 border-t border-border/50 bg-gradient-to-r from-card/40 via-card/60 to-card/40 backdrop-blur-sm">
+                    <ChatInput
+                      inputValue={inputValue}
+                      setInputValue={setInputValue}
+                      attachedFiles={attachedFiles}
+                      onSend={handleSendMessage}
+                      onFileUpload={handleFileUpload}
+                      onDeleteFile={handleDeleteFile}
+                      fileInputRef={fileInputRef}
+                      isLoading={isLoading}
+                      uploadLoading={uploadLoading}
+                      selectedMode={selectedMode}
+                    />
+                  </div>
                 </div>
-              </div>
-            </Card>
-          )}
+              </Panel>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            multiple
-            onChange={handleFileUpload}
-            className="hidden"
-          />
+              {/* PDF Viewer Panel */}
+              {selectedMode === 'pdf' && showPDFViewer && currentPDF && (
+                <>
+                  <PanelResizeHandle className="w-1 bg-border/50 hover:bg-primary/30 transition-all duration-200 relative group">
+                    <div className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-primary/20 group-hover:bg-primary/50 transition-colors" />
+                  </PanelResizeHandle>
+                  <Panel defaultSize={28} minSize={25} maxSize={45}>
+                    <div className="h-full bg-gradient-to-b from-card/40 to-card/60 border-l border-border/50">
+                      <div className="p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold truncate text-foreground">{currentPDF.name}</h3>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowPDFViewer(false)}
+                            className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="h-[calc(100%-65px)] bg-background/50">
+                        <PDFViewer file={currentPDF} isVisible={showPDFViewer} onToggleVisibility={setShowPDFViewer} />
+                      </div>
+                    </div>
+                  </Panel>
+                </>
+              )}
+            </PanelGroup>
+          )}
         </div>
       </div>
 
-      {/* Mobile PDF Drawer */}
+      {/* Mobile PDF Viewer */}
       <Drawer open={showMobilePDF} onOpenChange={setShowMobilePDF}>
-        <DrawerContent className="h-[80vh]">
+        <DrawerContent className="h-[90vh]">
           <DrawerHeader>
-            <DrawerTitle className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              {currentPDF?.name}
+            <DrawerTitle className="flex items-center justify-between">
+              <span className="truncate">{currentPDF?.name}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMobilePDF(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </DrawerTitle>
           </DrawerHeader>
           <div className="flex-1 overflow-hidden">
-            <PDFViewer
-              file={currentPDF}
-              isVisible={showMobilePDF}
-              onToggleVisibility={() => setShowMobilePDF(false)}
-              className="h-full"
-            />
+            {currentPDF && <PDFViewer file={currentPDF} isVisible={showMobilePDF} onToggleVisibility={setShowMobilePDF} />}
           </div>
         </DrawerContent>
       </Drawer>
 
-      {/* Delete File Confirmation Dialog - Desktop */}
-      {!isMobile && (
-        <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-          <AlertDialogContent className="max-w-md border-2 border-academic-burgundy/20 bg-gradient-to-br from-background to-academic-light-rose/5 backdrop-blur-sm">
-            <AlertDialogHeader className="text-center">
-              <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-gradient-to-r from-academic-burgundy to-academic-rose flex items-center justify-center">
-                <FileText className="w-5 h-5 text-white" />
-              </div>
-                          <AlertDialogTitle className="text-lg font-bold bg-gradient-to-r from-academic-burgundy to-academic-rose bg-clip-text text-transparent text-center">
-              Remove Document
-            </AlertDialogTitle>
-              <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed">
-                Removing this document will permanently delete it from your study session. You will lose access to ask questions about this document.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            
-            {/* Remember Decision Checkbox - Left Aligned */}
-            <div className="flex items-start space-x-3 mb-6">
-              <input
-                type="checkbox"
-                id="remember-delete-desktop"
-                checked={rememberDeleteDecision}
-                onChange={(e) => setRememberDeleteDecision(e.target.checked)}
-                className="w-4 h-4 mt-0.5 text-academic-teal bg-background border-academic-teal/30 rounded focus:ring-academic-teal/50 focus:ring-2 flex-shrink-0"
-              />
-              <label htmlFor="remember-delete-desktop" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                Remember my decision for future deletions
-              </label>
-            </div>
-            
-            <AlertDialogFooter className="flex flex-col gap-3">
-              <AlertDialogAction 
-                onClick={confirmDeleteFile} 
-                className="w-full bg-gradient-to-r from-academic-teal to-academic-burgundy text-white hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200 text-sm py-3"
-              >
-                Remove Document
-              </AlertDialogAction>
-              <AlertDialogCancel 
-                onClick={cancelDeleteFile}
-                className="w-full border-2 border-academic-teal/30 text-academic-teal hover:bg-academic-teal/10 hover:border-academic-teal/50 transition-all duration-200 text-sm py-3 rounded-lg"
-              >
-                Keep Document
-              </AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this file? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDeleteFile}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteFile}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      {/* Delete File Confirmation Dialog - Mobile Bottom Sheet */}
-      {isMobile && (
-        <Drawer open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-          <DrawerContent className="h-[65vh]">
-            <DrawerHeader className="text-center">
-              <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-gradient-to-r from-academic-burgundy to-academic-rose flex items-center justify-center">
-                <FileText className="w-6 h-6 text-white" />
-              </div>
-              <DrawerTitle className="text-lg font-bold bg-gradient-to-r from-academic-burgundy to-academic-rose bg-clip-text text-transparent">
-                Remove Document
-              </DrawerTitle>
-              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                Removing this document will permanently delete it from your study session. You will lose access to ask questions about this document.
-              </p>
-            </DrawerHeader>
-            
-            <div className="flex-1 px-6 pb-6">
-              {/* Remember Decision Checkbox - Left Aligned */}
-              <div className="flex items-start space-x-3 mb-6">
-                <input
-                  type="checkbox"
-                  id="remember-delete-mobile"
-                  checked={rememberDeleteDecision}
-                  onChange={(e) => setRememberDeleteDecision(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 text-academic-teal bg-background border-academic-teal/30 rounded focus:ring-academic-teal/50 focus:ring-2 flex-shrink-0"
-                />
-                <label htmlFor="remember-delete-mobile" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                  Remember my decision for future deletions
-                </label>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-3">
-                <Button
-                  onClick={confirmDeleteFile}
-                  className="w-full bg-gradient-to-r from-academic-teal to-academic-burgundy text-white hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200 py-3"
-                >
-                  Remove Document
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={cancelDeleteFile}
-                  className="w-full border-2 border-academic-teal/30 text-academic-teal hover:bg-academic-teal/10 hover:border-academic-teal/50 transition-all duration-200 py-3"
-                >
-                  Keep Document
-                </Button>
-              </div>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
-
-      {/* Preview Not Available Popup - Desktop */}
-      {!isMobile && (
-        <AlertDialog open={showPreviewNotAvailable} onOpenChange={setShowPreviewNotAvailable}>
-          <AlertDialogContent className="max-w-sm border-2 border-academic-burgundy/20 bg-gradient-to-br from-background to-academic-light-rose/5 backdrop-blur-sm">
-            <AlertDialogHeader className="text-center">
-              <div className="mx-auto mb-3 w-10 h-10 rounded-full bg-gradient-to-r from-academic-burgundy to-academic-rose flex items-center justify-center">
-                <FileText className="w-5 h-5 text-white" />
-              </div>
-              <AlertDialogTitle className="text-base font-bold bg-gradient-to-r from-academic-burgundy to-academic-rose bg-clip-text text-transparent text-center">
-                Preview Not Available
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed text-center">
-                Sorry, we don't have preview of this file: <span className="font-medium text-foreground">{previewNotAvailableFileName}</span>
-                <br /><br />
-                This file was uploaded in a previous session and is available for asking questions, but preview functionality is not available.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex justify-center">
-              <AlertDialogAction 
-                onClick={() => setShowPreviewNotAvailable(false)}
-                className="w-full bg-gradient-to-r from-academic-teal to-academic-burgundy text-white hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                Got it
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {/* Preview Not Available Popup - Mobile Bottom Sheet */}
-      {isMobile && (
-        <Drawer open={showPreviewNotAvailable} onOpenChange={setShowPreviewNotAvailable}>
-          <DrawerContent className="h-[50vh]">
-            <DrawerHeader className="text-center">
-              <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-gradient-to-r from-academic-burgundy to-academic-rose flex items-center justify-center">
-                <FileText className="w-6 h-6 text-white" />
-              </div>
-              <DrawerTitle className="text-base font-bold bg-gradient-to-r from-academic-burgundy to-academic-rose bg-clip-text text-transparent">
-                Preview Not Available
-              </DrawerTitle>
-              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                Sorry, we don't have preview of this file: <span className="font-medium text-foreground">{previewNotAvailableFileName}</span>
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                This file was uploaded in a previous session and is available for asking questions, but preview functionality is not available.
-              </p>
-            </DrawerHeader>
-            
-            <div className="flex-1 px-6 pb-6 flex items-end">
-              <Button
-                onClick={() => setShowPreviewNotAvailable(false)}
-                className="w-full bg-gradient-to-r from-academic-teal to-academic-burgundy text-white hover:from-academic-teal/90 hover:to-academic-burgundy/90 shadow-lg hover:shadow-xl transition-all duration-200 py-3"
-              >
-                Got it
-              </Button>
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      {/* Preview Not Available Dialog */}
+      <AlertDialog open={showPreviewNotAvailable} onOpenChange={setShowPreviewNotAvailable}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Preview Not Available</AlertDialogTitle>
+            <AlertDialogDescription>
+              File "{previewNotAvailableFileName}" preview is not available. You can still use it for questions or delete it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowPreviewNotAvailable(false)}>
+              Close
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowPreviewNotAvailable(false);
+                setShowDeleteConfirmation(true);
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Mobile File Bottom Sheet */}
       <Drawer open={showMobileFileSheet} onOpenChange={setShowMobileFileSheet}>
@@ -1425,7 +1177,7 @@ I can help you understand and work with the content more effectively when you as
                         variant="secondary" 
                         className={cn(
                           "flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0",
-                          currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-academic-teal text-white hover:bg-academic-teal/90 shadow-md"
+                          currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
                         )}
                         onClick={() => {
                           // Set the clicked file as the current PDF
@@ -1460,7 +1212,7 @@ I can help you understand and work with the content more effectively when you as
                       <Badge 
                         key={`mobile-uploaded-${index}`} 
                         variant="outline" 
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer border-dashed border-academic-burgundy/30 text-academic-burgundy/70 hover:border-academic-burgundy/50 hover:text-academic-burgundy flex-shrink-0"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer border-dashed border-border/50 text-muted-foreground hover:border-border hover:text-foreground flex-shrink-0"
                         onClick={() => {
                           handleUploadedFileNameClick(fileName);
                           setShowMobileFileSheet(false);
