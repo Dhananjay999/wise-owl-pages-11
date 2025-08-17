@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Header = () => {
   const [isVisible, setIsVisible] = useState(true);
@@ -99,6 +100,7 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-3">
+            <ThemeToggle />
             {!loading && (
               <>
                 {isAuthenticated && user ? (
