@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +33,8 @@ import {
   Minimize,
   Brain,
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  Maximize2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SEARCH_MODES } from "@/constants";
@@ -53,6 +55,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "./AuthModal";
 
 const ChatInterface = () => {
+  const navigate = useNavigate();
   // Separate chat histories for each mode
   const [pdfMessages, setPdfMessages] = useState<Message[]>([
     {
@@ -96,6 +99,7 @@ const ChatInterface = () => {
   const [showMobileFileSheet, setShowMobileFileSheet] = useState(false);
   const [showNewSessionConfirmation, setShowNewSessionConfirmation] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<{ file: File; progress: number }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -252,16 +256,58 @@ I can help you understand and work with the content more effectively when you as
       return;
     }
 
+    // Immediately add files to the uploading list with progress
+    const newUploadingFiles = validPdfFiles.map(file => ({ file, progress: 0 }));
+    setUploadingFiles(prev => [...prev, ...newUploadingFiles]);
+    
+    // Also add to attached files immediately for display
+    setAttachedFiles(prev => [...prev, ...validPdfFiles]);
+
     setUploadLoading(true);
     
     try {
       console.log('Starting file upload for:', validPdfFiles.length, 'files');
-      // Upload files to server
-      await apiService.uploadFiles(validPdfFiles);
+      
+      // Start the actual upload first
+      const uploadPromise = apiService.uploadFiles(validPdfFiles);
+      
+      // Simulate progress over 4-5 seconds while upload is happening
+      const progressPromises = validPdfFiles.map(async (file) => {
+        const totalSteps = 20; // More granular steps for smoother progress
+        const stepDelay = 250; // 250ms per step = 5 seconds total
+        
+        for (let step = 0; step <= totalSteps; step++) {
+          const progress = Math.round((step / totalSteps) * 100);
+          
+          // Don't go to 100% until upload is actually complete
+          if (step === totalSteps) {
+            // Wait for the actual upload to complete
+            await uploadPromise;
+            // Now we can set to 100%
+            setUploadingFiles(prev => 
+              prev.map((uf) => 
+                uf.file === file ? { ...uf, progress: 100 } : uf
+              )
+            );
+          } else {
+            setUploadingFiles(prev => 
+              prev.map((uf) => 
+                uf.file === file ? { ...uf, progress } : uf
+              )
+            );
+            await new Promise(resolve => setTimeout(resolve, stepDelay));
+          }
+        }
+        
+        return file;
+      });
+
+      // Wait for all progress animations and upload to complete
+      await Promise.all(progressPromises);
       console.log('File upload completed successfully');
       
-      // Only add files to attached files and show PDF viewer after successful upload
-      setAttachedFiles(prev => [...prev, ...validPdfFiles]);
+      // Remove from uploading list
+      setUploadingFiles(prev => prev.filter(uf => !validPdfFiles.includes(uf.file)));
       
       // Set the first PDF as the current PDF for viewing
       if (!currentPDF) {
@@ -285,6 +331,10 @@ I can help you understand and work with the content more effectively when you as
       
     } catch (error) {
       console.error('File upload failed:', error);
+      
+      // Remove from uploading list and attached files on error
+      setUploadingFiles(prev => prev.filter(uf => !validPdfFiles.includes(uf.file)));
+      setAttachedFiles(prev => prev.filter(file => !validPdfFiles.includes(file)));
       
       // Add error message
       const errorMessage: Message = {
@@ -576,17 +626,6 @@ I can help you understand and work with the content more effectively when you as
               direction="horizontal" 
               className={cn("transition-all duration-500", isFullscreen ? "h-full" : "h-[500px]")}
             >
-              {/* PDF Viewer Panel */}
-              <Panel defaultSize={35} minSize={20} maxSize={60}>
-                    <PDFViewer
-                      file={currentPDF}
-                      isVisible={true}
-                      onToggleVisibility={() => setShowPDFViewer(!showPDFViewer)}
-                      className="h-full"
-                    />
-                  </Panel>
-                  <PanelResizeHandle className="bg-border hover:bg-academic-teal/50 transition-colors" />
-              
               {/* Chat Interface Panel */}
               <Panel defaultSize={65} minSize={40}>
                 <Card className={cn(
@@ -632,16 +671,12 @@ I can help you understand and work with the content more effectively when you as
                         <Button
                           variant="academicOutline"
                           size="icon"
-                          onClick={() => setIsFullscreen(!isFullscreen)}
+                          onClick={() => navigate('/chat')}
                           className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0 rounded-xl shadow-md"
-                          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                          title="Open full-screen chat"
                         >
-                        {isFullscreen ? (
-                          <Minimize className="w-3 h-3 md:w-4 md:h-4" />
-                        ) : (
-                          <Expand className="w-3 h-3 md:w-4 md:h-4" />
-                        )}
-                      </Button>
+                          <Maximize2 className="w-3 h-3 md:w-4 md:h-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -783,38 +818,56 @@ I can help you understand and work with the content more effectively when you as
                           "flex flex-wrap gap-2 transition-all duration-30",
                           isFilePanelExpanded ? "max-h-32 overflow-y-auto 0 mt-2" : "max-h-0 overflow-hidden"
                         )}>
-                          {/* Currently attached files (with preview) */}
-                        {attachedFiles.map((file, index) => (
-                          <Badge 
-                              key={`attached-${index}`} 
-                            variant="secondary" 
-                            className={cn(
-                                "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0",
-                                currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-academic-teal text-white hover:bg-academic-teal/90 shadow-md"
-                            )}
-                            onClick={() => {
-                                // Set the clicked file as the current PDF
-                                setCurrentPDF(file);
-                                if (isMobile) {
-                                  setShowMobilePDF(true);
-                                } else {
-                                  setShowPDFViewer(true);
-                              }
-                            }}
-                          >
-                            <FileText className="w-3 h-3" />
-                            <span className="text-xs font-medium">{file.name}</span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                  handleDeleteFile(index);
-                                }}
-                                className="hover:bg-background/50 rounded-full p-1 transition-colors"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
+                          {/* Currently uploading files */}
+                          {uploadingFiles.map((uploadingFile, index) => (
+                            <Badge 
+                              key={`uploading-${index}`} 
+                              variant="outline" 
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-dashed border-academic-teal/30 bg-academic-teal/5"
+                            >
+                              <div className="w-3 h-3 border-2 border-academic-teal border-t-transparent rounded-full animate-spin" />
+                              <span className="text-xs font-medium">{uploadingFile.file.name}</span>
+                              <span className="text-xs text-academic-teal">{uploadingFile.progress}%</span>
                             </Badge>
                           ))}
+                          
+                                                    {/* Currently attached files (with preview) */}
+                          {attachedFiles.map((file, index) => {
+                            const isUploading = uploadingFiles.some(uf => uf.file === file);
+                            if (isUploading) return null; // Skip if still uploading
+                            
+                            return (
+                              <Badge 
+                                key={`attached-${index}`} 
+                                variant="secondary" 
+                                className={cn(
+                                  "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0",
+                                  currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-academic-teal text-white hover:bg-academic-teal/90 shadow-md"
+                                )}
+                                onClick={() => {
+                                  // Set the clicked file as the current PDF
+                                  setCurrentPDF(file);
+                                  if (isMobile) {
+                                    setShowMobilePDF(true);
+                                  } else {
+                                    setShowPDFViewer(true);
+                                  }
+                                }}
+                              >
+                                <FileText className="w-3 h-3" />
+                                <span className="text-xs font-medium">{file.name}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteFile(index);
+                                  }}
+                                  className="hover:bg-background/50 rounded-full p-1 transition-colors"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
                           
                           {/* Previously uploaded files (no preview) */}
                           {uploadedFileNames.map((fileName, index) => (
@@ -897,6 +950,39 @@ I can help you understand and work with the content more effectively when you as
                   </div>
                 </Card>
               </Panel>
+              
+              <PanelResizeHandle className="bg-border hover:bg-academic-teal/50 transition-colors" />
+              
+              {/* PDF Viewer Panel */}
+              <Panel defaultSize={35} minSize={20} maxSize={60}>
+                <div className="h-full flex flex-col">
+                  {/* PDF Viewer Header */}
+                  <div className="flex items-center justify-between p-3 border-b bg-card/30">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-academic-teal" />
+                      <span className="font-medium text-sm truncate">{currentPDF?.name}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowPDFViewer(false)}
+                      className="h-6 w-6"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  
+                  {/* PDF Viewer Content */}
+                  <div className="flex-1 overflow-hidden">
+                    <PDFViewer
+                      file={currentPDF}
+                      isVisible={true}
+                      onToggleVisibility={() => setShowPDFViewer(false)}
+                      className="h-full"
+                    />
+                  </div>
+                </div>
+              </Panel>
             </PanelGroup>
           ) : (
             <Card className={cn(
@@ -943,15 +1029,11 @@ I can help you understand and work with the content more effectively when you as
                   <Button
                     variant="academicOutline"
                     size="icon"
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                          className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0 rounded-xl shadow-md"
-                    title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                    onClick={() => navigate('/chat')}
+                    className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0 rounded-xl shadow-md"
+                    title="Open full-screen chat"
                   >
-                    {isFullscreen ? (
-                      <Minimize className="w-3 h-3 md:w-4 md:h-4" />
-                    ) : (
-                      <Expand className="w-3 h-3 md:w-4 md:h-4" />
-                    )}
+                    <Maximize2 className="w-3 h-3 md:w-4 md:h-4" />
                   </Button>
                       </div>
                 </div>
@@ -1094,38 +1176,56 @@ I can help you understand and work with the content more effectively when you as
                       "flex flex-wrap gap-2 transition-all duration-300",
                       isFilePanelExpanded ? "max-h-32 overflow-y-auto  mt-2" : "max-h-0 overflow-hidden"
                     )}>
-                      {/* Currently attached files (with preview) */}
-                    {attachedFiles.map((file, index) => (
-                      <Badge 
-                          key={`attached-${index}`} 
-                        variant="secondary" 
-                        className={cn(
-                            "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0",
-                            currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-academic-teal text-white hover:bg-academic-teal/90 shadow-md"
-                        )}
-                        onClick={() => {
-                            // Set the clicked file as the current PDF
-                            setCurrentPDF(file);
-                            if (isMobile) {
-                              setShowMobilePDF(true);
-                            } else {
-                              setShowPDFViewer(true);
-                          }
-                        }}
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span className="text-xs font-medium">{file.name}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteFile(index);
-                          }}
-                          className="hover:bg-background/50 rounded-full p-1 transition-colors"
+                      {/* Currently uploading files */}
+                      {uploadingFiles.map((uploadingFile, index) => (
+                        <Badge 
+                          key={`uploading-${index}`} 
+                          variant="outline" 
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-dashed border-academic-teal/30 bg-academic-teal/5"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    ))}
+                          <div className="w-3 h-3 border-2 border-academic-teal border-t-transparent rounded-full animate-spin" />
+                          <span className="text-xs font-medium">{uploadingFile.file.name}</span>
+                          <span className="text-xs text-academic-teal">{uploadingFile.progress}%</span>
+                        </Badge>
+                      ))}
+                      
+                      {/* Currently attached files (with preview) */}
+                      {attachedFiles.map((file, index) => {
+                        const isUploading = uploadingFiles.some(uf => uf.file === file);
+                        if (isUploading) return null; // Skip if still uploading
+                        
+                                                return (
+                          <Badge 
+                            key={`attached-${index}`} 
+                            variant="secondary" 
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex-shrink-0",
+                              currentPDF?.name === file.name && (showPDFViewer || showMobilePDF) && "bg-academic-teal text-white hover:bg-academic-teal/90 shadow-md"
+                            )}
+                            onClick={() => {
+                              // Set the clicked file as the current PDF
+                              setCurrentPDF(file);
+                              if (isMobile) {
+                                setShowMobilePDF(true);
+                              } else {
+                                setShowPDFViewer(true);
+                              }
+                            }}
+                          >
+                            <FileText className="w-3 h-3" />
+                            <span className="text-xs font-medium">{file.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteFile(index);
+                              }}
+                              className="hover:bg-background/50 rounded-full p-1 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
                     
                     {/* Previously uploaded files (no preview) */}
                     {uploadedFileNames.map((fileName, index) => (

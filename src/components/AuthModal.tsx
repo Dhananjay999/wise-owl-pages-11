@@ -244,11 +244,11 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 bg-muted/30 rounded-xl p-1 shadow-lg border border-border/20">
-              <TabsTrigger value="login" className="text-xs sm:text-sm font-medium py-2 sm:py-3 rounded-lg transition-all duration-300 data-[state=active]:shadow-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-academic-teal data-[state=active]:to-academic-burgundy data-[state=active]:text-white">
+            <TabsList className="grid w-full grid-cols-2 gap-2 mb-4 sm:mb-6 bg-gradient-to-r from-academic-teal/10 via-academic-burgundy/10 to-academic-rose/10 rounded-xl p-2 shadow-lg border border-border/20">
+              <TabsTrigger value="login" className="text-xs sm:text-sm font-medium py-3 sm:py-4 rounded-lg transition-all duration-300 data-[state=active]:shadow-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-academic-teal data-[state=active]:to-academic-burgundy data-[state=active]:text-white data-[state=active]:scale-[1.02] hover:bg-muted/50">
                 Sign In
               </TabsTrigger>
-              <TabsTrigger value="signup" className="text-xs sm:text-sm font-medium py-2 sm:py-3 rounded-lg transition-all duration-300 data-[state=active]:shadow-md data-[state=active]:bg-gradient-to-r data-[state=active]:from-academic-teal data-[state=active]:to-academic-burgundy data-[state=active]:text-white">
+              <TabsTrigger value="signup" className="text-xs sm:text-sm font-medium py-3 sm:py-4 rounded-lg transition-all duration-300 data-[state=active]:shadow-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-academic-teal data-[state=active]:to-academic-burgundy data-[state=active]:text-white data-[state=active]:scale-[1.02] hover:bg-muted/50">
                 Sign Up
               </TabsTrigger>
             </TabsList>
