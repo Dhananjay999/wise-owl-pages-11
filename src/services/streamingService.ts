@@ -1,3 +1,5 @@
+import { API_CONFIG } from "@/constants";
+
 // Browser-compatible EventEmitter implementation
 type EventListener = (...args: unknown[]) => void;
 
@@ -102,7 +104,7 @@ class StreamingService extends EventEmitter {
 
   constructor(config: StreamingConfig) {
     super();
-    this.baseUrl = config.baseUrl || 'http://127.0.0.1:8000';
+    this.baseUrl = config.baseUrl || API_CONFIG.BASE_URL;
     this.userId = config.userId;
     this.headers = {
       'accept': 'application/json',
