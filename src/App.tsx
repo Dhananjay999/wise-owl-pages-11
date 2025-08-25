@@ -11,6 +11,7 @@ import { useFingerprint } from "@/hooks/use-fingerprint";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { initializeStreamingService, getStreamingService } from "@/services/streamingService";
+import { API_CONFIG } from "./constants";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,7 @@ const App = () => {
     if (isInitialized && fingerprintId) {
       initializeStreamingService({
         userId: fingerprintId,
-        baseUrl: 'http://127.0.0.1:8000'
+        baseUrl: API_CONFIG.BASE_URL
       });
     }
   }, [isInitialized, fingerprintId]);
