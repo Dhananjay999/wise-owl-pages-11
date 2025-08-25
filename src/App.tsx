@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,12 +10,35 @@ import ChatPage from "./pages/ChatPage";
 import { useFingerprint } from "@/hooks/use-fingerprint";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { initializeStreamingService, getStreamingService } from "@/services/streamingService";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   // Initialize fingerprint ID on app load
-  const { isInitialized } = useFingerprint();
+  const { isInitialized, fingerprintId } = useFingerprint();
+
+  // Initialize streaming service
+  useEffect(() => {
+    if (isInitialized && fingerprintId) {
+      initializeStreamingService({
+        userId: fingerprintId,
+        baseUrl: 'http://127.0.0.1:8000'
+      });
+    }
+  }, [isInitialized, fingerprintId]);
+
+  // Update streaming service user ID if it changes
+  useEffect(() => {
+    if (isInitialized && fingerprintId) {
+      try {
+        const streamingService = getStreamingService();
+        streamingService.updateUserId(fingerprintId);
+      } catch (error) {
+        // Service not initialized yet, will be handled by the initialization effect
+      }
+    }
+  }, [fingerprintId]);
 
   return (
     <QueryClientProvider client={queryClient}>

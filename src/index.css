@@ -101,6 +101,50 @@ All colors MUST be HSL.
     @apply mb-1;
   }
   
+  /* KaTeX Math Styling */
+  .katex {
+    font-size: 1.1em;
+  }
+  
+  .katex-display {
+    margin: 1em 0;
+  }
+  
+  /* Dark mode adjustments for KaTeX */
+  .dark .katex {
+    color: hsl(var(--foreground));
+  }
+  
+  .dark .katex .mord {
+    color: hsl(var(--foreground));
+  }
+  
+  .dark .katex .mbin,
+  .dark .katex .mrel {
+    color: hsl(var(--foreground));
+  }
+  
+  .dark .katex .mopen,
+  .dark .katex .mclose {
+    color: hsl(var(--foreground));
+  }
+  
+  .dark .katex .mpunct {
+    color: hsl(var(--foreground));
+  }
+  
+  .dark .katex .mord.text {
+    color: hsl(var(--foreground));
+  }
+  
+  .dark .katex .mord.mathnormal {
+    color: hsl(var(--foreground));
+  }
+  
+  .dark .katex .mord.mathdefault {
+    color: hsl(var(--foreground));
+  }
+  
   .prose-chat strong {
     @apply font-semibold;
   }

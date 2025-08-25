@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -73,9 +73,7 @@ const ChatPage = () => {
     }
   ]);
   
-  // Separate loading states for each mode
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const [webLoading, setWebLoading] = useState(false);
+  // File management state
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [uploadedFileNames, setUploadedFileNames] = useState<string[]>([]);
   const [currentPDF, setCurrentPDF] = useState<File | null>(null);
@@ -138,83 +136,40 @@ const ChatPage = () => {
     }
   }, [selectedMode]);
 
+
+
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
 
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: 'user',
       content,
       timestamp: new Date(),
     };
 
-    // Add message to the appropriate chat based on selected mode
+    // Add user message to the appropriate chat based on selected mode
     if (selectedMode === 'pdf') {
       setPdfMessages(prev => [...prev, newMessage]);
-      setPdfLoading(true);
     } else {
       setWebMessages(prev => [...prev, newMessage]);
-      setWebLoading(true);
-    }
-
-    try {
-      const searchMode = chatModes.find(mode => mode.id === selectedMode)?.searchMode || 'study_material';
-      
-      // Include selected files information in the message for PDF mode
-      let enhancedContent = content;
-      if (selectedMode === 'pdf' && selectedFiles.size > 0) {
-        const selectedFileNames = Array.from(selectedFiles);
-        enhancedContent = `[Selected files: ${selectedFileNames.join(', ')}]\n\n${content}`;
-      }
-      
-      const data = await apiService.sendChatMessage(enhancedContent, searchMode);
-      
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: data.answer,
-        timestamp: new Date(),
-        metadata: {
-          sources: data.metadata.map(meta => ({
-            name: meta.source === 'uploaded_pdf' ? meta.doc_name : meta.title,
-            pageNumber: meta.source === 'uploaded_pdf' ? meta.page_number : undefined,
-            title: meta.source === 'uploaded_pdf' ? meta.doc_name : meta.title,
-            type: meta.source === 'uploaded_pdf' ? 'pdf' : 'web'
-          }))
-        }
-      };
-
-      // Add bot response to the appropriate chat
-      if (selectedMode === 'pdf') {
-        setPdfMessages(prev => [...prev, botResponse]);
-      } else {
-        setWebMessages(prev => [...prev, botResponse]);
-      }
-    } catch (error) {
-      console.error('Error calling API:', error);
-      
-      const errorResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
-        timestamp: new Date()
-      };
-      
-      // Add error response to the appropriate chat
-      if (selectedMode === 'pdf') {
-        setPdfMessages(prev => [...prev, errorResponse]);
-      } else {
-        setWebMessages(prev => [...prev, errorResponse]);
-      }
-    } finally {
-      // Set loading to false for the appropriate mode
-      if (selectedMode === 'pdf') {
-        setPdfLoading(false);
-      } else {
-        setWebLoading(false);
-      }
     }
   };
+
+  // Handle bot response from MessagePair component
+  const handleBotResponse = useCallback((botMessage: Message, mode: 'pdf' | 'web') => {
+    if (mode === 'pdf') {
+      setPdfMessages(prev => [...prev, botMessage]);
+    } else {
+      setWebMessages(prev => [...prev, botMessage]);
+    }
+  }, []);
+
+  // Handle error from MessagePair component
+  const handleError = useCallback((error: string) => {
+    console.error('Chat error:', error);
+    // You can add toast notification here if needed
+  }, []);
 
   const handleFileUpload = async (files: File[]) => {
     // Immediately add files to the uploading list with progress
@@ -464,16 +419,44 @@ const ChatPage = () => {
                     user={user}
                   />
                   
-                  <ChatMessages
-                    messages={selectedMode === 'pdf' ? pdfMessages : webMessages}
-                    isLoading={selectedMode === 'pdf' ? pdfLoading : webLoading}
-                    onScrollToBottom={() => {}}
-                  />
+                  {/* Chat Messages - PDF Mode */}
+                  <div className={cn(
+                    "flex-1 flex flex-col min-h-0",
+                    selectedMode !== 'pdf' && "hidden"
+                  )}>
+                    <ChatMessages
+                      key="chat-messages-pdf"
+                      messages={pdfMessages}
+                      selectedMode="pdf"
+                      chatModes={chatModes}
+                      selectedFiles={selectedFiles}
+                      onScrollToBottom={() => {}}
+                      onBotResponse={(botMessage, mode) => handleBotResponse(botMessage, mode)}
+                      onError={handleError}
+                    />
+                  </div>
+
+                  {/* Chat Messages - Web Mode */}
+                  <div className={cn(
+                    "flex-1 flex flex-col min-h-0",
+                    selectedMode !== 'web' && "hidden"
+                  )}>
+                                    <ChatMessages
+                  key="chat-messages-web"
+                  messages={webMessages}
+                  selectedMode="web"
+                  chatModes={chatModes}
+                  selectedFiles={selectedFiles}
+                  onScrollToBottom={() => {}}
+                  onBotResponse={(botMessage, mode) => handleBotResponse(botMessage, mode)}
+                  onError={handleError}
+                />
+                  </div>
                   
                   <ChatInput
                     onSendMessage={handleSendMessage}
                     onFileUpload={handleFileUpload}
-                    isLoading={selectedMode === 'pdf' ? pdfLoading : webLoading}
+                    isLoading={false}
                     selectedMode={selectedMode}
                     selectedFiles={selectedFiles}
                     placeholder={
@@ -520,7 +503,7 @@ const ChatPage = () => {
             </PanelGroup>
           ) : (
             /* Chat Panel Only */
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col h-full">
               <ChatHeader
                 selectedMode={selectedMode}
                 chatModes={chatModes}
@@ -529,16 +512,44 @@ const ChatPage = () => {
                 user={user}
               />
               
-              <ChatMessages
-                messages={selectedMode === 'pdf' ? pdfMessages : webMessages}
-                isLoading={selectedMode === 'pdf' ? pdfLoading : webLoading}
-                onScrollToBottom={() => {}}
-              />
+              {/* Chat Messages - PDF Mode */}
+              <div className={cn(
+                "flex-1 flex flex-col min-h-0",
+                selectedMode !== 'pdf' && "hidden"
+              )}>
+                                                  <ChatMessages
+                  key="chat-messages-pdf"
+                  messages={pdfMessages}
+                  selectedMode="pdf"
+                  chatModes={chatModes}
+                  selectedFiles={selectedFiles}
+                  onScrollToBottom={() => {}}
+                  onBotResponse={(botMessage, mode) => handleBotResponse(botMessage, mode)}
+                  onError={handleError}
+                />
+              </div>
+
+              {/* Chat Messages - Web Mode */}
+              <div className={cn(
+                "flex-1 flex flex-col min-h-0",
+                selectedMode !== 'web' && "hidden"
+              )}>
+                <ChatMessages
+                  key="chat-messages-web"
+                  messages={webMessages}
+                  selectedMode="web"
+                  chatModes={chatModes}
+                  selectedFiles={selectedFiles}
+                  onScrollToBottom={() => {}}
+                  onBotResponse={(botMessage, mode) => handleBotResponse(botMessage, mode)}
+                  onError={handleError}
+                />
+              </div>
               
               <ChatInput
                 onSendMessage={handleSendMessage}
                 onFileUpload={handleFileUpload}
-                isLoading={selectedMode === 'pdf' ? pdfLoading : webLoading}
+                isLoading={false}
                 selectedMode={selectedMode}
                 selectedFiles={selectedFiles}
                 placeholder={
